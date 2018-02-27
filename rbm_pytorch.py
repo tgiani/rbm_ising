@@ -302,7 +302,15 @@ class RBM(nn.Module):
         return (hidden_term + vbias_term)*beta  # mean along the batches
 
     def free_energy_batch_mean(self, v, beta = 1.0):
-        return self.free_energy.mean()
+        return self.free_energy(v).mean()
+
+
+    def log_likelihood(self, v, beta=1.0):
+        # compute the log-likelihood
+        logz , logz_up, logz_down = self.annealed_importance_sampling(1, 10000, 100)
+        return exp(self.free_energy_batch_mean(v))/logz
+
+
 
     def backward(self, target, vk):
         # p(H_i | v) where v is the input data
