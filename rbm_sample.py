@@ -85,6 +85,23 @@ def ising_magnetization(field):
     m = np.abs((field).mean(axis=1))
     return np.array([m, m * m])
 
+def energy(field, model_size, nstates):
+    N = model_size
+    EE = 0
+    Evec = []
+    for i in range (0,N):
+      for j in range (0,N):
+       EE += -field[:][N*i+j]*field[:][N*i+(j+1)%N] - field[:][N*i+j]*field[:][N*(i+1)%N+j]
+     EE=EE/(N*N)
+     Evec.append(EE)
+ 
+    E = np.asarray(Evec)
+    return(E)
+    #return np.asarray([E, E*E])
+
+
+
+
 def ising_averages(mag_history, model_size, label=""):
     # Bootstrap samples
     resample_size = 50000
@@ -177,6 +194,9 @@ def sample_from_rbm(steps, model, image_size, nstates=30, v_in=None):
     
     magv = []
     magh = []
+    env  = []
+    enh  = []
+   
     # Run the Gibbs sampling for a number of steps
     for s in xrange(steps):
         #r = np.random.random()
@@ -208,6 +228,7 @@ def sample_from_rbm(steps, model, image_size, nstates=30, v_in=None):
         if (s > parameters['thermalization']):
             magv.append(ising_magnetization(get_ising_variables(v.numpy())))
             magh.append(ising_magnetization(get_ising_variables(h.numpy())))
+            print(energy(v.numpy()))
     return v, np.asarray(magv), np.asarray(magh)
 
 
@@ -289,8 +310,8 @@ else:
 
 
 # Print statistics
-ising_averages(magv, model_size, "v")
-ising_averages(magh, model_size, "h")
+#ising_averages(magv, model_size, "v")
+#ising_averages(magh, model_size, "h")
 
 logz, logz_up, logz_down = rbm.annealed_importance_sampling(k=1, betas = 10000, num_chains = 200)
 print("LogZ ", logz, logz_up, logz_down)
