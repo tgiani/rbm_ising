@@ -308,7 +308,7 @@ class RBM(nn.Module):
     def log_likelihood(self, v, beta=1.0):
         # compute the log-likelihood
         logz , logz_up, logz_down = self.annealed_importance_sampling(1, 10000, 100)
-        return exp(self.free_energy_batch_mean(v))/logz
+        return self.free_energy_batch_mean(v)) - logz
 
 
 

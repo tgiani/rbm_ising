@@ -161,12 +161,14 @@ for epoch in pbar:
     loss_mean = np.mean(loss_)
     free_energy_mean = np.mean(free_energy_)
 
-    log_likelyhood_mean = exp(free_energy_mean)/logz
+    log_likelyhood_mean = free_energy_mean - logz
 
     
 
-
+   
     pbar.set_description("Epoch %3d - Loss %8.5f - RE %5.3g  " % (epoch, loss_mean, re_mean))
+    print("=== log_likelihood ===")
+    print(log_likelyhood_mean)
 
     loss_file.write(str(epoch) + "\t" + str(loss_mean) + "\t" +  str(free_energy_mean) + "\t" + str(re_mean)+ "\t" + str(log_likelyhood_mean) + "\n")
     # confirm output
