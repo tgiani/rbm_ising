@@ -86,29 +86,40 @@ def ising_magnetization(field):
     return np.array([m, m * m])
 
 
-def energy(field, model_size, nstates):
-    N = model_size
-    EE = 0
-    Evec = []
-    for n in range(nstates):
-     for i in range (0,N):
-       for j in range (0,N):
-        EE += -field[n][N*i+j]*field[n][N*i+(j+1)%N] - field[n][N*i+j]*field[n][N*(i+1)%N+j]
-     EE=EE/(N*N)
-     Evec.append(EE)
+
+def energy(field):
+    field = np.asarray(field)
+    N = parameters['ising']['size']
+    E = 0
+    for i in range (0,N):
+      for j in range (0,N):
+        E += -field[N*i+j]*field[N*i+(j+1)%N] - field[N*i+j]*field[N*(i+1)%N+j]
+      E=E/float(N*N)
+
  
-    E = np.asarray(Evec)
     return np.asarray([E, E*E])
 
 
 
 
-def ising_averages(mag_history, model_size, label=""):
-    # Bootstrap samples
-    resample_size = 50000
+def energy_concurrent_sampling(field, model_size):
+    field = np.asarray(field)
+    return(np.apply_along_axis(energy, 1, field).transpose())
+
+
+
+
+
+
+def ising_averages(mag_history, en_history, model_size, label=""):
+
+    """
+    # Bootstrap samples, to use in alternative to concurrent sampling
+    resample_size = 500
     #get resample states
     mag_resample = bootstrap_resample(mag_history[:, 0, :], n=resample_size)
     
+      
     #Now take average across resampled states and std dev.
     mag_avg = mag_resample.mean(axis=0)
     mag_std = mag_resample.std(axis=0)
@@ -122,9 +133,36 @@ def ising_averages(mag_history, model_size, label=""):
 
     #finally take average across concurrent samples, can also compare to adding std error in quad and divide by N_conc to account for taking mean
 
-    print(label, " ::: Magnetization: ", mag_avg.mean(), " +- ", mag_avg.std()/sqrt(len(mag_avg)), "compare to std error added in quad +- ", sqrt(sum(mag_std**2/(resample_size*len(mag_avg)))), " - Susceptibility:", susc_avg.mean() , " +- ", susc_avg.std()/sqrt(len(mag_avg)), "compare to std error added in quad +- ", sqrt(sum(susc_std**2/(resample_size*len(mag_avg)))))
+    #print(label, " ::: Magnetization: ", mag_avg.mean(), " +- ", mag_avg.std()/sqrt(len(mag_avg)), "compare to std error added in quad +- ", sqrt(sum(mag_std**2/(resample_size*len(mag_avg)))), " - Susceptibility:", susc_avg.mean() , " +- ", susc_avg.std()/sqrt(len(mag_avg)), "compare to std error added in quad +- ", sqrt(sum(susc_std**2/(resample_size*len(mag_avg)))))
     #plt.plot(mag_history[:,0], linewidth=0.2)
     #plt.show()
+    """
+
+    # without bootstrap, using concurrent sample
+    # magnetization
+    mag_matrix = mag_history[:, 0, :]        # get a matrix with just the magnetization, along the columns we have mag of different gibbs sampled states, along the lines differen conc samplings
+    mag_gibbs_avg = mag_matrix.mean(axis=0)  # take the mean across gibbs sampled states
+    mag = mag_gibbs_avg.mean()               # take the mean across concurrent sampled states
+    mag_error = mag_gibbs_avg.std()          # take std across concurrent sampled states
+    # susceptibility
+    susc_gibbs_avg = model_size*(mag_history[:, 1, :].mean(axis=0) - mag_gibbs_avg*mag_gibbs_avg)
+    susc = susc_gibbs_avg.mean()             # take mean cross concurrent samplings
+    susc_error = susc_gibbs_avg.std()        # take std across concurrent sampled states
+
+
+    # energy
+    en_matrix = en_history[:, 0, :]
+    en_gibbs_avg = en_matrix.mean(axis=0)
+    en = en_gibbs_avg.mean()
+    en_error = en_gibbs_avg.std()
+    # heat capacity
+    cv_gibbs_avg = model_size*(en_history[:, 1, :].mean(axis=0) - en_gibbs_avg*en_gibbs_avg)
+    cv = cv_gibbs_avg.mean()
+    cv_error = cv_gibbs_avg.std()
+
+
+    print(label, " ::: Magnetization: ", mag, " +- ", mag_error, " - Susceptibility:", susc, " +- ", susc_error)
+    print(label, " ::: Energy: ", en, " +- ", en_error, " - Heat capacity:", cv, " +- ", cv_error)
 
 
 def imgshow(file_name, img):
@@ -195,9 +233,13 @@ def sample_from_rbm(steps, model, image_size, nstates=30, v_in=None):
     
     magv = []
     magh = []
+    env  = []
+    enh  = []
+    size = parameters['ising']['size']
    
     # Run the Gibbs sampling for a number of steps
     for s in xrange(steps):
+        print(s)
         #r = np.random.random()
         #if (r > 0.5):
         #    vin = torch.zeros(nstates, model.v_bias.data.shape[0])
@@ -227,7 +269,10 @@ def sample_from_rbm(steps, model, image_size, nstates=30, v_in=None):
         if (s > parameters['thermalization']):
             magv.append(ising_magnetization(get_ising_variables(v.numpy())))
             magh.append(ising_magnetization(get_ising_variables(h.numpy())))
-    return v, np.asarray(magv), np.asarray(magh)
+            env.append(energy_concurrent_sampling(get_ising_variables(v.numpy()), size))
+            
+
+    return v, np.asarray(magv), np.asarray(magh), np.asarray(env)
 
 
 # Parse command line arguments
@@ -303,25 +348,27 @@ if parameters['initialize_with_training']:
         data[i] = train_loader[i + 100][0].view(-1, model_size)
     v, magv, magh = sample_from_rbm(parameters['steps'], rbm, image_size, v_in=data)
 else:
-    v, magv, magh = sample_from_rbm(
+    v, magv, magh, env = sample_from_rbm(
         parameters['steps'], rbm, image_size, parameters['concurrent samples'])
 
 
+
+
+
+
 # Print statistics
-ising_averages(magv, model_size, "v")
-ising_averages(magh, model_size, "h")
+ising_averages(magv, env, model_size, "v")
+#ising_averages(magh, enh, model_size, "h")
 
 
 
-logz, logz_up, logz_down = rbm.annealed_importance_sampling(k=1, betas = 10000, num_chains = 200)
-print("LogZ ", logz, logz_up, logz_down)
+#logz, logz_up, logz_down = rbm.annealed_importance_sampling(k=1, betas = 10000, num_chains = 200)
+#print("LogZ ", logz, logz_up, logz_down)
 
 # Save data - in img directory
 #since mag history will be N_gibbssample * N_concurrent * 2 we should output mag history for each concurrent sample
-for i in range(len(magv[0, 0, :])):
-    np.savetxt(parameters['image_dir'] + "Mag_history_sample_" + str(i), magv[:, :, i])
-
-
+#for i in range(len(magv[0, 0, :])):
+   # np.savetxt(parameters['image_dir'] + "Mag_history_sample_" + str(i), magv[:, :, i])
 
 
 """
