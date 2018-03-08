@@ -121,9 +121,11 @@ def ising_averages(mag_history, en_history, model_size, label=""):
 
     n = 500                                                               # number of resampled sets s_i, analogue of the number of concurrent sampled states
     resample_size = parameters['steps']-parameters['thermalization']      # number of states in each resampled set s_i
+    
     resampled_states_mag = []
     resampled_states_en = []
-
+     
+    ##########   need improvemts  ##############
     for i in range(n):
      resampled_states_mag.append(bootstrap_resample(mag_history[:, 0, :], n=resample_size))
      resampled_states_en.append(bootstrap_resample(en_history[:, 0, :], n=resample_size))
@@ -141,7 +143,7 @@ def ising_averages(mag_history, en_history, model_size, label=""):
     print("Bootstrap error, number of bootstrapped resampling = ", n, " each with ", resample_size, " states")
     print(label, " ::: Magnetization: ", mag, " +- ", mag_error)
     print(label, " ::: Energy: ", en, " +- ", en_error)
-
+    
     
     
     
