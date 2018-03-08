@@ -88,13 +88,15 @@ def ising_magnetization(field):
 
 
 def energy(field):
-    field = np.asarray(field)
     N = parameters['ising']['size']
-    E = 0
-    for i in range (0,N):
-      for j in range (0,N):
-        E += -field[N*i+j]*field[N*i+(j+1)%N] - field[N*i+j]*field[N*(i+1)%N+j]
-      E=E/float(N*N)
+    state = np.asarray(field).reshape((N, N))
+
+    E = np.sum((-state*np.roll(state, -1, axis=0) - state*np.roll(state, -1, axis=1)))/float(N*N)
+    #E = 0
+    #for i in range (0,N):
+    #  for j in range (0,N):
+    #    E += -field[N*i+j]*field[N*i+(j+1)%N] - field[N*i+j]*field[N*(i+1)%N+j]
+    #  E=E/float(N*N)
 
  
     return np.asarray([E, E*E])
