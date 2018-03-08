@@ -113,13 +113,39 @@ def energy_concurrent_sampling(field, model_size):
 
 def ising_averages(mag_history, en_history, model_size, label=""):
 
-    """
-    # Bootstrap samples, to use in alternative to concurrent sampling
-    resample_size = 500
-    #get resample states
-    mag_resample = bootstrap_resample(mag_history[:, 0, :], n=resample_size)
     
-      
+    # Bootstrap samples, to use in alternative to concurrent sampling:
+    # just one single gibbs sampling is performed, generating a set s = {nsteps states obtained with gibbs sampling}. 
+    # From this we get a series of set s_1,..,s_n using by bootstrapping s.
+    # We use s_1,..,s_n insted of we analoguos set we would get with concurrent sampling
+
+    n = 500                                                               # number of resampled sets s_i, analogue of the number of concurrent sampled states
+    resample_size = parameters['steps']-parameters['thermalization']      # number of states in each resampled set s_i
+    resampled_states_mag = []
+    resampled_states_en = []
+
+    for i in range(n):
+     resampled_states_mag.append(bootstrap_resample(mag_history[:, 0, :], n=resample_size))
+     resampled_states_en.append(bootstrap_resample(en_history[:, 0, :], n=resample_size))
+    
+    sets_mag = np.asarray(resampled_states_mag)
+    mag_avg_resampled = sets_mag.mean(axis=1)  # take the mean of the states in each set s_i
+    mag = mag_avg_resampled.mean()     # take the mean across all the resampled sets
+    mag_error = mag_avg_resampled.std()    # take the std across all the resampled sets
+
+    sets_en = np.asarray(resampled_states_en)
+    en_avg_resampled = sets_en.mean(axis=1)  # take the mean of the states in each set s_i
+    en = en_avg_resampled.mean()     # take the mean across all the resampled sets
+    en_error = en_avg_resampled.std()    # take the std across all the resampled sets
+
+    print("Bootstrap error, number of bootstrapped resampling = ", n, " each with ", resample_size, " states")
+    print(label, " ::: Magnetization: ", mag, " +- ", mag_error)
+    print(label, " ::: Energy: ", en, " +- ", en_error)
+
+    
+    
+    
+    """
     #Now take average across resampled states and std dev.
     mag_avg = mag_resample.mean(axis=0)
     mag_std = mag_resample.std(axis=0)
@@ -137,8 +163,8 @@ def ising_averages(mag_history, en_history, model_size, label=""):
     #plt.plot(mag_history[:,0], linewidth=0.2)
     #plt.show()
     """
-
-    # without bootstrap, using concurrent sample
+    
+    # without bootstrap, using concurrent sampling
     # magnetization
     mag_matrix = mag_history[:, 0, :]        # get a matrix with just the magnetization, along the columns we have mag of different gibbs sampled states, along the lines differen conc samplings
     mag_gibbs_avg = mag_matrix.mean(axis=0)  # take the mean across gibbs sampled states
@@ -160,10 +186,10 @@ def ising_averages(mag_history, en_history, model_size, label=""):
     cv = cv_gibbs_avg.mean()
     cv_error = cv_gibbs_avg.std()
 
-
+    print("Concurrent sampling, number of concurrent samplings = ", parameters['concurrent samples'], " each with ", resample_size, " states")
     print(label, " ::: Magnetization: ", mag, " +- ", mag_error, " - Susceptibility:", susc, " +- ", susc_error)
     print(label, " ::: Energy: ", en, " +- ", en_error, " - Heat capacity:", cv, " +- ", cv_error)
-
+    
 
 def imgshow(file_name, img):
     npimg = np.transpose(img.numpy(), (1, 2, 0))
@@ -238,8 +264,12 @@ def sample_from_rbm(steps, model, image_size, nstates=30, v_in=None):
     size = parameters['ising']['size']
    
     # Run the Gibbs sampling for a number of steps
-    for s in xrange(steps):
-        print(s)
+    print("==== Running Gibbs sampling with steps = ", parameters['steps'], " concurrent samplings =", parameters['concurrent samples'], " thermalization =", parameters['thermalization']  )
+    # progress bar
+    pbar = tqdm(xrange(steps))
+
+    for s in pbar:
+        #print(s)
         #r = np.random.random()
         #if (r > 0.5):
         #    vin = torch.zeros(nstates, model.v_bias.data.shape[0])
