@@ -159,16 +159,12 @@ for epoch in pbar:
         # manually update the gradients, do not use autograd
         rbm.backward(data_input, new_visible)
         train_op.step()
-
+    re_mean = np.mean(full_reconstruction_error)
+    loss_mean = np.mean(loss_)
+    free_energy_mean = np.mean(free_energy_)
      # trying to compute logz only once per 10 epochs, not for every batch, to speed up the training
-
     if epoch % 10 == 0:
         logz , logz_up, logz_down = rbm.annealed_importance_sampling(1, 10000, 100)
-
-        re_mean = np.mean(full_reconstruction_error)
-        loss_mean = np.mean(loss_)
-        free_energy_mean = np.mean(free_energy_)
-
         log_likelihood_mean = free_energy_mean - logz
 
         #Changed loss file write out to be epoch, free energy mean, logZ, loglikelihood
