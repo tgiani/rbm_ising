@@ -124,15 +124,18 @@ pbar = tqdm(range(args.start_epoch, args.epochs))
 
 loss_file = open(args.text_output_dir + "Loss_timeline.data_" + str(args.model) + "_lr" + str(learning_rate) + "_wd" + str(wd) + "_mom" + str(
     mom) + "_epochs" + str(args.epochs), "w", buffering=1)
-loss_file.write("#Epoch \t  Loss mean \t free energy mean \t reconstruction error mean \n")
+
+#loss_file.write("#Epoch \t  Loss mean \t free energy mean \t reconstruction error mean \n")
+
+#Changed loss file output, changing headings here too
+
+loss_file.write("#Epoch \t free energy mean \t logz \t loglikelihood \n")
+
 # Run the RBM training
 for epoch in pbar:
     loss_ = []
     full_reconstruction_error = []
     free_energy_ = []
-  
-    # trying to compute logz only once per epoch, not for every batch, to speed up the training
-    logz , logz_up, logz_down = rbm.annealed_importance_sampling(1, 10000, 100)
 
     for i, (data, target) in enumerate(train_loader):
         data_input = Variable(data.view(-1, model_size))
@@ -157,29 +160,40 @@ for epoch in pbar:
         rbm.backward(data_input, new_visible)
         train_op.step()
 
-    re_mean = np.mean(full_reconstruction_error)
-    loss_mean = np.mean(loss_)
-    free_energy_mean = np.mean(free_energy_)
+     # trying to compute logz only once per 10 epochs, not for every batch, to speed up the training
 
-    log_likelihood_mean = free_energy_mean - logz
+    if epoch % 10 == 0:
+        logz , logz_up, logz_down = rbm.annealed_importance_sampling(1, 10000, 100)
+
+        re_mean = np.mean(full_reconstruction_error)
+        loss_mean = np.mean(loss_)
+        free_energy_mean = np.mean(free_energy_)
+
+        log_likelihood_mean = free_energy_mean - logz
+
+        #Changed loss file write out to be epoch, free energy mean, logZ, loglikelihood
+
+        loss_file.write(str(epoch) + "\t" +  str(free_energy_mean) + "\t" + str(logz) + "\t" + str(log_likelihood_mean) + "\n")
+        
+        print("=== log_likelihood ===")
+        print(log_likelihood_mean)
+   
+    pbar.set_description("Epoch %3d - Loss %8.5f - RE %5.3g  " % (epoch, loss_mean, re_mean))
+    
+
+    #loss_file.write(str(epoch) + "\t" + str(loss_mean) + "\t" +  str(free_energy_mean) + "\t" + str(re_mean) + "\t" + str(log_likelihood_mean) + "\n")
 
     
 
-   
-    pbar.set_description("Epoch %3d - Loss %8.5f - RE %5.3g  " % (epoch, loss_mean, re_mean))
-    print("=== log_likelihood ===")
-    print(log_likelihood_mean)
-
-    loss_file.write(str(epoch) + "\t" + str(loss_mean) + "\t" +  str(free_energy_mean) + "\t" + str(re_mean)+ "\t" + str(log_likelihood_mean) + "\n")
     # confirm output
     #imgshow(args.image_output_dir + "real" + str(epoch),     make_grid(data_input.view(-1, 1, image_size, image_size).data))
     #imgshow(args.image_output_dir + "generate" + str(epoch), make_grid(new_visible.view(-1, 1, image_size, image_size).data))
     #imgshow(args.image_output_dir + "hidden" + str(epoch),   make_grid(hidden.view(-1, 1, args.hidden_size, args.hidden_size).data))
     #imgshow(args.image_output_dir + "parameter" + str(epoch), make_grid(rbm.W.view(hidden_layers, 1, image_size, image_size).data))
 
-    plt.hist(rbm.W.data.numpy().flatten(), normed=True, bins=50)
-    plt.savefig(args.image_output_dir + "W_hist" + str(epoch) + ".png")
-    plt.clf()
+    #plt.hist(rbm.W.data.numpy().flatten(), normed=True, bins=50)
+    #plt.savefig(args.image_output_dir + "W_hist" + str(epoch) + ".png")
+    #plt.clf()
 
     if epoch % 10 == 0:
         torch.save(rbm.state_dict(), "trained_rbm.pytorch." + str(epoch))
