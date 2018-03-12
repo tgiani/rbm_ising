@@ -87,6 +87,28 @@ def ising_magnetization(field):
 
 
 
+#########################################################################
+def ising_matrix():
+    N = parameters['ising']['size']
+    a = np.zeros(shape=(N*N,N*N))
+    for i in range (0,N):
+       for j in range (0,N):
+          a[N*i+j][N*i+(j+1)%N] -= 1
+          a[N*i+j][N*((i+1)%N)+j] -= 1
+    return a 
+
+
+
+def ising_free_energy(v, ising_matrix, nstates, beta=1.0):
+   ising_matrix = np.kron(np.eye(nstates), ising_matrix)
+   return exp(-(v.dot(ising_matrix.dot(v.transpose()))))
+
+
+##########################################################################
+
+
+
+
 def energy(field):
     N = parameters['ising']['size']
     state = np.asarray(field).reshape((N, N))
@@ -104,9 +126,9 @@ def energy(field):
 
 
 
-def energy_concurrent_sampling(field, model_size):
+def energy_concurrent_sampling(field, beta=1.0):
     field = np.asarray(field)
-    return(np.apply_along_axis(energy, 1, field).transpose())
+    return(beta*np.apply_along_axis(energy, 1, field).transpose())
 
 
 
@@ -287,6 +309,7 @@ def sample_from_rbm(steps, model, image_size, nstates=30, v_in=None):
             magh.append(ising_magnetization(get_ising_variables(h.numpy())))
             env.append(energy_concurrent_sampling(get_ising_variables(v.numpy()), size))
             
+            
 
     return v, np.asarray(magv), np.asarray(magh), np.asarray(env)
 
@@ -345,6 +368,9 @@ elif parameters['model'] == 'ising':
 # Read the model, example
 rbm = rbm_pytorch.RBM(n_vis=model_size, n_hid=hidden_layers)
 
+
+
+
 # load the model, if the file is present
 try:
     print("Loading saved RBM network state from file",
@@ -369,6 +395,10 @@ else:
 
 
 
+# test ising matrix. Still not work for multiple states, so it still no good to compute Z.
+a = ising_matrix()
+v = np.asarray(v)
+print(ising_free_energy(v,a,1))
 
 
 
@@ -378,8 +408,10 @@ ising_averages(magv, env, model_size, "v")
 
 
 
-#logz, logz_up, logz_down = rbm.annealed_importance_sampling(k=1, betas = 10000, num_chains = 200)
+#logz, logz_up, logz_down = annealed_importance_sampling_ising(k=1, betas = 10000, num_chains = 200)
 #print("LogZ ", logz, logz_up, logz_down)
+
+
 
 # Save data - in img directory
 #since mag history will be N_gibbssample * N_concurrent * 2 we should output mag history for each concurrent sample
