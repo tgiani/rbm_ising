@@ -99,7 +99,7 @@ def ising_matrix():
 
 
 
-def ising_free_energy(v, ising_matrix, nstates, beta=1.0):
+def ising_free_energy(v, ising_matrix, beta=1.0):
     v = v.double()
     ising_matrix_mult = torch.sum(torch.mul(v,(v.mm(ising_matrix))), 1)
     return ising_matrix_mult.mul(-beta).exp()
