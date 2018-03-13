@@ -87,7 +87,7 @@ def ising_magnetization(field):
 
 
 
-#########################################################################
+###############################  WIP  ##########################################
 def ising_matrix():
     N = parameters['ising']['size']
     a = np.zeros(shape=(N*N,N*N))
@@ -101,7 +101,7 @@ def ising_matrix():
 
 def ising_free_energy(v, ising_matrix, nstates, beta=1.0):
    ising_matrix = np.kron(np.eye(nstates), ising_matrix)
-   return exp(-(v.dot(ising_matrix.dot(v.transpose()))))
+   return exp(-beta*(v.dot(ising_matrix.dot(v.transpose()))))
 
 
 ##########################################################################
