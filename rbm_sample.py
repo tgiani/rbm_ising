@@ -95,13 +95,14 @@ def ising_matrix():
        for j in range (0,N):
           a[N*i+j][N*i+(j+1)%N] -= 1
           a[N*i+j][N*((i+1)%N)+j] -= 1
-    return a 
+    return torch.from_numpy(a)
 
 
 
 def ising_free_energy(v, ising_matrix, nstates, beta=1.0):
-   ising_matrix = np.kron(np.eye(nstates), ising_matrix)
-   return exp(-beta*(v.dot(ising_matrix.dot(v.transpose()))))
+    v = v.double()
+    ising_matrix_mult = torch.sum(torch.mul(v,(v.mm(ising_matrix))), 1)
+    return ising_matrix_mult.mul(-beta).exp()
 
 
 ##########################################################################
@@ -397,8 +398,7 @@ else:
 
 # test ising matrix. Still not work for multiple states, so it still no good to compute Z.
 a = ising_matrix()
-v = np.asarray(v)
-print(ising_free_energy(v,a,1))
+print(ising_free_energy(v,a, 1))
 
 
 
