@@ -1,0 +1,22 @@
+{
+ 
+  "model": "ising",
+  "checkpoint": "/scratch/RBM/Ising_Trained_Machines/L8/ising/state0/trained_rbm.pytorch.",
+  "start_epoch": 10,
+  "final_epoch": 100,
+  "batch_size": 200,
+  "steps": 10000,  
+  "concurrent samples": 50,
+  "save interval" : 1000,
+  "output_states": false,
+  "hidden_layers": 8,
+  "thermalization": 500,
+  "image_dir": "./Data_Ising_test/",
+  "output_dir": "./Data_analysis/",
+  "ising": { "train_data": "state0.data", 
+             "size": 8 },
+  "initialize_with_training": false,
+  "temperature" : 1.8
+    
+
+ }
