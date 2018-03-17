@@ -95,7 +95,7 @@ def ising_averages(mag_history, en_history, model_size, label=""):
     mag = mag_gibbs_avg.mean()               # take the mean across concurrent sampled states
     mag_error = mag_gibbs_avg.std()          # take std across concurrent sampled states
     # susceptibility
-    susc_gibbs_avg = model_size*(mag_history[:, 1, :].mean(axis=0) - mag_gibbs_avg*mag_gibbs_avg)
+    susc_gibbs_avg = model_size*(mag_history[:, 1, :].mean(axis=0) - mag_gibbs_avg*mag_gibbs_avg)/parameters['temperature']
     susc = susc_gibbs_avg.mean()             # take mean cross concurrent samplings
     susc_error = susc_gibbs_avg.std()        # take std across concurrent sampled states
 
@@ -106,7 +106,7 @@ def ising_averages(mag_history, en_history, model_size, label=""):
     en = en_gibbs_avg.mean()
     en_error = en_gibbs_avg.std()
     # heat capacity
-    cv_gibbs_avg = model_size*(en_history[:, 1, :].mean(axis=0) - en_gibbs_avg*en_gibbs_avg)
+    cv_gibbs_avg = model_size*(en_history[:, 1, :].mean(axis=0) - en_gibbs_avg*en_gibbs_avg)/(parameters['temperature']*parameters['temperature'])
     cv = cv_gibbs_avg.mean()
     cv_error = cv_gibbs_avg.std()
     
