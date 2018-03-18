@@ -261,50 +261,44 @@ if args.verbose:
     pprint(parameters)
 
 
-# Ising Model data set
 model_size = parameters['ising']['size'] * parameters['ising']['size']
-print("Loading Ising training set...")
-train_loader = torch.utils.data.DataLoader(rbm_pytorch.CSV_Ising_dataset(parameters['ising']['train_data'], size=model_size), shuffle=True,
+rbm = rbm_pytorch.RBM(n_vis=model_size, n_hid=model_size)
+
+
+
+
+if parameters['do_convergence_analysis']:
+
+  ###################################################################
+  #### Convergence analysis: observables/loglikelihood vs epochs#####
+  ###################################################################
+
+  print("Loading Ising training set...")
+  train_loader = torch.utils.data.DataLoader(rbm_pytorch.CSV_Ising_dataset(parameters['ising']['train_data'], size=model_size), shuffle=True,
                                                batch_size=parameters['batch_size'], drop_last=True)
 
 
-# Read a trained rbm
-rbm = rbm_pytorch.RBM(n_vis=model_size, n_hid=model_size)
-"""
-# load the trained rbm, if the file is present
-if parameters['checkpoint'] is not None:
-    print("Loading saved network state from file", parameters['checkpoint'])
-    rbm.load_state_dict(torch.load(parameters['checkpoint']))
-else:
-   print("Need a trained machine")
-"""
+  analysis_file = open(parameters['output_dir'] + "analysis_" + str(parameters['temperature']) + "/data.dat", 'w')
+  analysis_file.write("trained rbms from " + str(parameters['checkpoint'])+ "\n")
+  pbar = tqdm(range(parameters['start_epoch'], parameters['final_epoch']))
 
 
-########################################################
-############## Convergence analysis ####################
+  npoints  = (parameters['final_epoch']-parameters['start_epoch'])/10
+  n = 0
+
+  epochs   = np.zeros(npoints)
+  mag      = np.zeros(npoints)
+  mag_err  = np.zeros(npoints)
+  en       = np.zeros(npoints)
+  en_err   = np.zeros(npoints)
+  susc     = np.zeros(npoints)
+  susc_err = np.zeros(npoints)
+  cv       = np.zeros(npoints)
+  cv_err   = np.zeros(npoints)
+  log_likelihood_mean = np.zeros(npoints)
 
 
-analysis_file = open(parameters['output_dir'] + "analysis_" + str(parameters['temperature']) + "/data.dat", 'w')
-analysis_file.write("trained rbms from " + str(parameters['checkpoint'])+ "\n")
-pbar = tqdm(range(parameters['start_epoch'], parameters['final_epoch']))
-
-
-npoints  = (parameters['final_epoch']-parameters['start_epoch'])/10
-n = 0
-
-epochs   = np.zeros(npoints)
-mag      = np.zeros(npoints)
-mag_err  = np.zeros(npoints)
-en       = np.zeros(npoints)
-en_err   = np.zeros(npoints)
-susc     = np.zeros(npoints)
-susc_err = np.zeros(npoints)
-cv       = np.zeros(npoints)
-cv_err   = np.zeros(npoints)
-log_likelihood_mean = np.zeros(npoints)
-
-
-for epoch in pbar:
+  for epoch in pbar:
 
     if epoch % 10 == 0:
 
@@ -337,64 +331,150 @@ for epoch in pbar:
         
         n += 1
 
-#########################################################################################################
 
-print("Plotting....")
+  print("Plotting....")
 
-## Observables vs number of epoch ##
+  ## Observables vs number of epoch ##
+  plt.figure(figsize=(15, 5))
+  plt.errorbar(epochs, mag, yerr = mag_err)
+  plt.title("Magnetization vs number of epochs")
+  plt.savefig(parameters['output_dir'] + "analysis_" + str(parameters['temperature']) + "/mag" + str(parameters['temperature']) + ".png")
+  plt.close()
+ 
+  plt.figure(figsize=(15, 5))
+  plt.errorbar(epochs, en, yerr = en_err)
+  plt.title("Energy vs number of epochs")
+  plt.savefig(parameters['output_dir'] + "analysis_" + str(parameters['temperature']) + "/en" + str(parameters['temperature']) + ".png")
+  plt.close()
 
-plt.errorbar(epochs, mag, yerr = mag_err)
-plt.title("Magnetization vs number of epochs")
-plt.savefig(parameters['output_dir'] + "analysis_" + str(parameters['temperature']) + "/mag" + str(parameters['temperature']) + ".png")
-plt.close()
+  plt.figure(figsize=(15, 5))
+  plt.errorbar(epochs, susc, yerr = susc_err)
+  plt.title("Susceptibility vs number of epochs")
+  plt.savefig(parameters['output_dir'] + "analysis_" + str(parameters['temperature']) + "/susc" + str(parameters['temperature']) + ".png")
+  plt.close()
 
-plt.errorbar(epochs, en, yerr = en_err)
-plt.title("Energy vs number of epochs")
-plt.savefig(parameters['output_dir'] + "analysis_" + str(parameters['temperature']) + "/en" + str(parameters['temperature']) + ".png")
-plt.close()
+  plt.figure(figsize=(15, 5))
+  plt.errorbar(epochs, cv, yerr = cv_err)
+  plt.title("Heat capacity vs number of epochs")
+  plt.savefig(parameters['output_dir'] + "analysis_" + str(parameters['temperature']) + "/cv" + str(parameters['temperature']) + ".png")
+  plt.close()
 
-plt.errorbar(epochs, susc, yerr = susc_err)
-plt.title("Susceptibility vs number of epochs")
-plt.savefig(parameters['output_dir'] + "analysis_" + str(parameters['temperature']) + "/susc" + str(parameters['temperature']) + ".png")
-plt.close()
-
-plt.errorbar(epochs, cv, yerr = cv_err)
-plt.title("Heat capacity vs number of epochs")
-plt.savefig(parameters['output_dir'] + "analysis_" + str(parameters['temperature']) + "/cv" + str(parameters['temperature']) + ".png")
-plt.close()
-
-
-plt.plot(epochs, log_likelihood_mean)
-plt.title("Loglikelihood vs number of epochs")
-plt.savefig(parameters['output_dir'] + "analysis_" + str(parameters['temperature']) + "/loglikelihood" + str(parameters['temperature']) + ".png")
-plt.close()
-
-
-## Observables vs loglikelihood ##
-
-plt.errorbar(log_likelihood_mean, mag, yerr = mag_err)
-plt.title("Magnetization vs log_likelihood")
-plt.savefig(parameters['output_dir'] + "analysis_" + str(parameters['temperature']) + "/mag_ll_" + str(parameters['temperature']) + ".png")
-plt.close()
-
-plt.errorbar(log_likelihood_mean, en, yerr = en_err)
-plt.title("Energy vs log_likelihood")
-plt.savefig(parameters['output_dir'] + "analysis_" + str(parameters['temperature']) + "/en_ll_" + str(parameters['temperature']) + ".png")
-plt.close()
-
-plt.errorbar(log_likelihood_mean, susc, yerr = susc_err)
-plt.title("Susceptibility vs log_likelihood")
-plt.savefig(parameters['output_dir'] + "analysis_" + str(parameters['temperature']) + "/susc_ll_" + str(parameters['temperature']) + ".png")
-plt.close()
-
-plt.errorbar(log_likelihood_mean, cv, yerr = cv_err)
-plt.title("Heat capacity vs log_likelihood")
-plt.savefig(parameters['output_dir'] + "analysis_" + str(parameters['temperature']) + "/cv_ll_" + str(parameters['temperature']) + ".png")
-plt.close()
+  plt.figure(figsize=(15, 5))
+  plt.plot(epochs, log_likelihood_mean)
+  plt.title("Loglikelihood vs number of epochs")
+  plt.savefig(parameters['output_dir'] + "analysis_" + str(parameters['temperature']) + "/loglikelihood" + str(parameters['temperature']) + ".png")
+  plt.close()
 
 
+  ## Observables vs loglikelihood ##
+
+  plt.figure(figsize=(15, 5))
+  plt.errorbar(log_likelihood_mean, mag, yerr = mag_err)
+  plt.title("Magnetization vs log_likelihood")
+  plt.savefig(parameters['output_dir'] + "analysis_" + str(parameters['temperature']) + "/mag_ll_" + str(parameters['temperature']) + ".png")
+  plt.close()
+
+  plt.figure(figsize=(15, 5))
+  plt.errorbar(log_likelihood_mean, en, yerr = en_err)
+  plt.title("Energy vs log_likelihood")
+  plt.savefig(parameters['output_dir'] + "analysis_" + str(parameters['temperature']) + "/en_ll_" + str(parameters['temperature']) + ".png")
+  plt.close()
+ 
+  plt.figure(figsize=(15, 5))
+  plt.errorbar(log_likelihood_mean, susc, yerr = susc_err)
+  plt.title("Susceptibility vs log_likelihood")
+  plt.savefig(parameters['output_dir'] + "analysis_" + str(parameters['temperature']) + "/susc_ll_" + str(parameters['temperature']) + ".png")
+  plt.close()
+
+  plt.figure(figsize=(15, 5))
+  plt.errorbar(log_likelihood_mean, cv, yerr = cv_err)
+  plt.title("Heat capacity vs log_likelihood")
+  plt.savefig(parameters['output_dir'] + "analysis_" + str(parameters['temperature']) + "/cv_ll_" + str(parameters['temperature']) + ".png")
+  plt.close()
+
+  analysis_file.close()
+
+else:
+
+  ###########################################################
+  ##### Temperature analysis: observables vs temperature ####
+  ########################################################### 
 
 
+  analysis_file = open(parameters['output_dir'] + "analysis_T_" + str(parameters['ising']['size']) + "/data_T.dat", 'w')
+  analysis_file.write("trained rbms from " + str(parameters['checkpoint'])+ "\n")
+
+  npoints  = int((parameters['final_temperature']- parameters['start_temperature'])*10) + 1
+
+  temperatures   = np.zeros(npoints)
+  mag            = np.zeros(npoints)
+  mag_err        = np.zeros(npoints)
+  en             = np.zeros(npoints)
+  en_err         = np.zeros(npoints)
+  susc     = np.zeros(npoints)
+  susc_err = np.zeros(npoints)
+  cv       = np.zeros(npoints)
+  cv_err   = np.zeros(npoints)
+
+
+
+
+
+
+  for T in range(npoints):
+        
+        print("Loading saved network state from file", parameters['checkpoint'], T)
+        rbm.load_state_dict(torch.load(parameters['checkpoint']+str(T)))
+        
+        
+     
+        v, magv, magh, env = sample_from_rbm(parameters['steps'], rbm, parameters['ising']['size'], parameters['concurrent samples'])
+        mag[T], mag_err[T], en[T], en_err[T], susc[T], susc_err[T], cv[T], cv_err[T] =  ising_averages(magv, env, model_size, "v")
+        temperatures[T] = parameters['start_temperature'] + float(T)/10 
+       
+        # need to rescale susc and cv according to the temperature
+        susc = susc*parameters['temperature']/temperatures[T]
+        susc_err = susc_err*parameters['temperature']/temperatures[T]
+        cv = cv *(parameters['temperature']*parameters['temperature'])/(temperatures[T]*temperatures[T])
+        cv_err = cv_err*(parameters['temperature']*parameters['temperature'])/(temperatures[T]*temperatures[T])
+
+        
+        analysis_file.write(str(temperatures[T]) + "\t" +  str(mag[T]) + "\t" + str(mag_err[T])+ "\t" +  str(en[T]) + "\t" + str(en_err[T])+ "\t" +  str(susc[T]) + "\t" + str(susc_err[T])+ "\t" +  str(cv[T]) + "\t" + str(cv_err[T]) + "\n")
+        
+        print(str(temperatures[T]) + "\t" +  str(mag[T]) + "\t" + str(mag_err[T])+ "\t" +  str(en[T]) + "\t" + str(en_err[T])+ "\t" +  str(susc[T]) + "\t" + str(susc_err[T])+ "\t" +  str(cv[T]) + "\t" + str(cv_err[T]) + "\n")
+
+
+
+           
+
+  print("Plotting....")
+
+  ## Observables vs temperature ##
+
+  plt.errorbar(temperatures, mag, yerr = mag_err)
+  plt.title("Magnetization vs tempearture")
+  plt.savefig(parameters['output_dir'] + "analysis_T_" + str(parameters['ising']['size']) + "/mag_" + str(parameters['ising']['size']) + ".png")
+  plt.close()
+
+  plt.errorbar(temperatures, en, yerr = en_err)
+  plt.title("Energy vs tempearture")
+  plt.savefig(parameters['output_dir'] + "analysis_T_" + str(parameters['ising']['size']) + "/energy_" + str(parameters['ising']['size']) + ".png")
+  plt.close()
+
+  plt.errorbar(temperatures, susc, yerr = susc_err)
+  plt.title("Susceptibility vs tempearture")
+  plt.savefig(parameters['output_dir'] + "analysis_T_" + str(parameters['ising']['size']) + "/susc_" + str(parameters['ising']['size']) + ".png")
+  plt.close()
+
+  plt.errorbar(temperatures, cv, yerr = cv_err)
+  plt.title("Heat capacity vs tempearture")
+  plt.savefig(parameters['output_dir'] + "analysis_T_" + str(parameters['ising']['size']) + "/cv_" + str(parameters['ising']['size']) + ".png")
+  plt.close()
+
+  analysis_file.close()
+
+
+####################################################################################
 
 
 def ising_matrix():

@@ -1,9 +1,9 @@
 {
  
   "model": "ising",
-  "checkpoint": "/scratch/RBM/Ising_Trained_Machines/L8/ising/state0/trained_rbm.pytorch.",
+  "checkpoint": "/scratch/RBM/Ising_Trained_Machines/L8/best/trained_rbm.pytorch.last",
   "start_epoch": 10,
-  "final_epoch": 100,
+  "final_epoch": 1990,
   "batch_size": 200,
   "steps": 10000,  
   "concurrent samples": 50,
@@ -13,10 +13,13 @@
   "thermalization": 500,
   "image_dir": "./Data_Ising_test/",
   "output_dir": "./Data_analysis/",
-  "ising": { "train_data": "state0.data", 
+  "ising": { "train_data": "/scratch/RBM/Ising_Trained_Machines/L8/training/state_8_03_", 
              "size": 8 },
   "initialize_with_training": false,
-  "temperature" : 1.8
+  "temperature" : 3.0,
+  "do_convergence_analysis": false,
+  "start_temperature": 1.8,
+  "final_temperature": 3.0
     
 
  }
