@@ -248,10 +248,10 @@ if parameters['do_convergence_analysis']:
                                                batch_size=parameters['batch_size'], drop_last=True)
 
 
-  analysis_file = open(parameters['output_dir'] + "analysis_" + str(parameters['temperature']) + "_L " + str(parameters['ising']['size']) + "/data.dat", 'w')
+  analysis_file = open(parameters['output_dir'] + "analysis_" + str(parameters['temperature']) + "_L" + str(parameters['ising']['size']) + "/data.dat", 'w')
   analysis_file.write("trained rbms from " + str(parameters['checkpoint'])+ "\n")
   pbar = tqdm(range(parameters['start_epoch'], parameters['final_epoch']))
-
+  n = 0
 
   npoints  = (parameters['final_epoch']-parameters['start_epoch'])/10
 
@@ -267,7 +267,7 @@ if parameters['do_convergence_analysis']:
   log_likelihood_mean = np.zeros(npoints)
 
 
-  for n, epoch in enumerate(pbar,0):
+  for epoch in pbar:
 
     if epoch % 10 == 0:
 
@@ -292,38 +292,38 @@ if parameters['do_convergence_analysis']:
         analysis_file.write(str(epoch) + "\t" +  str(mag[n]) + "\t" + str(mag_err[n])+ "\t" +  str(en[n]) + "\t" + str(en_err[n])+ "\t" +  str(susc[n]) + "\t" + str(susc_err[n])+ "\t" +  str(cv[n]) + "\t" + str(cv_err[n]) + "\t" + str(log_likelihood_mean[n]) + "\n")
         
         print(str(epoch) + "\t" +  str(mag[n]) + "\t" + str(mag_err[n])+ "\t" +  str(en[n]) + "\t" + str(en_err[n])+ "\t" +  str(susc[n]) + "\t" + str(susc_err[n])+ "\t" +  str(cv[n]) + "\t" + str(cv_err[n]) + "\t" + str(log_likelihood_mean[n]) + "\n")
-
+        n+=1
 
   print("Plotting....")
   ## Observables vs number of epoch ##
   plt.figure(figsize=(15, 5))
   plt.errorbar(epochs, mag, yerr = mag_err)
   plt.title("Magnetization vs number of epochs")
-  plt.savefig(parameters['output_dir'] + "analysis_" + str(parameters['temperature']) + "_L " + str(parameters['ising']['size']) + "/mag" + str(parameters['temperature']) + ".png")
+  plt.savefig(parameters['output_dir'] + "analysis_" + str(parameters['temperature']) + "_L" + str(parameters['ising']['size']) + "/mag" + str(parameters['temperature']) + ".png")
   plt.close()
  
   plt.figure(figsize=(15, 5))
   plt.errorbar(epochs, en, yerr = en_err)
   plt.title("Energy vs number of epochs")
-  plt.savefig(parameters['output_dir'] + "analysis_" + str(parameters['temperature']) + "_L " + str(parameters['ising']['size']) + "/en" + str(parameters['temperature']) + ".png")
+  plt.savefig(parameters['output_dir'] + "analysis_" + str(parameters['temperature']) + "_L" + str(parameters['ising']['size']) + "/en" + str(parameters['temperature']) + ".png")
   plt.close()
 
   plt.figure(figsize=(15, 5))
   plt.errorbar(epochs, susc, yerr = susc_err)
   plt.title("Susceptibility vs number of epochs")
-  plt.savefig(parameters['output_dir'] + "analysis_" + str(parameters['temperature']) + "_L " + str(parameters['ising']['size']) + "/susc" + str(parameters['temperature']) + ".png")
+  plt.savefig(parameters['output_dir'] + "analysis_" + str(parameters['temperature']) + "_L" + str(parameters['ising']['size']) + "/susc" + str(parameters['temperature']) + ".png")
   plt.close()
 
   plt.figure(figsize=(15, 5))
   plt.errorbar(epochs, cv, yerr = cv_err)
   plt.title("Heat capacity vs number of epochs")
-  plt.savefig(parameters['output_dir'] + "analysis_" + str(parameters['temperature']) + "_L " + str(parameters['ising']['size']) + "/cv" + str(parameters['temperature']) + ".png")
+  plt.savefig(parameters['output_dir'] + "analysis_" + str(parameters['temperature']) + "_L" + str(parameters['ising']['size']) + "/cv" + str(parameters['temperature']) + ".png")
   plt.close()
 
   plt.figure(figsize=(15, 5))
   plt.plot(epochs, log_likelihood_mean)
   plt.title("Loglikelihood vs number of epochs")
-  plt.savefig(parameters['output_dir'] + "analysis_" + str(parameters['temperature']) + "_L " + str(parameters['ising']['size']) + "/loglikelihood" + str(parameters['temperature']) + ".png")
+  plt.savefig(parameters['output_dir'] + "analysis_" + str(parameters['temperature']) + "_L" + str(parameters['ising']['size']) + "/loglikelihood" + str(parameters['temperature']) + ".png")
   plt.close()
 
 
@@ -332,25 +332,25 @@ if parameters['do_convergence_analysis']:
   plt.figure(figsize=(15, 5))
   plt.errorbar(log_likelihood_mean, mag, yerr = mag_err)
   plt.title("Magnetization vs log_likelihood")
-  plt.savefig(parameters['output_dir'] + "analysis_" + str(parameters['temperature']) + "_L " + str(parameters['ising']['size']) + "/mag_ll_" + str(parameters['temperature']) + ".png")
+  plt.savefig(parameters['output_dir'] + "analysis_" + str(parameters['temperature']) + "_L" + str(parameters['ising']['size']) + "/mag_ll_" + str(parameters['temperature']) + ".png")
   plt.close()
 
   plt.figure(figsize=(15, 5))
   plt.errorbar(log_likelihood_mean, en, yerr = en_err)
   plt.title("Energy vs log_likelihood")
-  plt.savefig(parameters['output_dir'] + "analysis_" + str(parameters['temperature']) + "_L " + str(parameters['ising']['size']) + "/en_ll_" + str(parameters['temperature']) + ".png")
+  plt.savefig(parameters['output_dir'] + "analysis_" + str(parameters['temperature']) + "_L" + str(parameters['ising']['size']) + "/en_ll_" + str(parameters['temperature']) + ".png")
   plt.close()
  
   plt.figure(figsize=(15, 5))
   plt.errorbar(log_likelihood_mean, susc, yerr = susc_err)
   plt.title("Susceptibility vs log_likelihood")
-  plt.savefig(parameters['output_dir'] + "analysis_" + str(parameters['temperature']) + "_L " + str(parameters['ising']['size']) + "/susc_ll_" + str(parameters['temperature']) + ".png")
+  plt.savefig(parameters['output_dir'] + "analysis_" + str(parameters['temperature']) + "_L" + str(parameters['ising']['size']) + "/susc_ll_" + str(parameters['temperature']) + ".png")
   plt.close()
 
   plt.figure(figsize=(15, 5))
   plt.errorbar(log_likelihood_mean, cv, yerr = cv_err)
   plt.title("Heat capacity vs log_likelihood")
-  plt.savefig(parameters['output_dir'] + "analysis_" + str(parameters['temperature']) + "_L " + str(parameters['ising']['size']) + "/cv_ll_" + str(parameters['temperature']) + ".png")
+  plt.savefig(parameters['output_dir'] + "analysis_" + str(parameters['temperature']) + "_L" + str(parameters['ising']['size']) + "/cv_ll_" + str(parameters['temperature']) + ".png")
   plt.close()
 
   analysis_file.close()
