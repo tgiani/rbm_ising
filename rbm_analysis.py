@@ -97,37 +97,6 @@ def ising_averages(mag_history, en_history, model_size, label=""):
     return mag, mag_error, en, en_error, susc, susc_error, cv, cv_error
 
 
-def ising_averages_gs(mag_history, en_history, model_size, label=""):
-    # using concurrent sampling
-    # magnetization
-    mag_matrix = mag_history[:, 0, :]        # get a matrix with just the magnetization, along the columns we have mag of different gibbs sampled states, along the lines differen conc samplings
-    mag_gibbs_avg = mag_matrix.mean(axis=0)  # take the mean across gibbs sampled states
-    mag = mag_gibbs_avg.mean()               # take the mean across concurrent sampled states
-    mag_error = mag_gibbs_avg.std()          # take std across concurrent sampled states
-
-    # susceptibility
-    susc_gibbs_avg = model_size*(mag_history[:, 1, :].mean(axis=0) - mag_gibbs_avg*mag_gibbs_avg)/parameters['temperature']
-    susc = susc_gibbs_avg.mean()             # take mean cross concurrent samplings
-    susc_error = susc_gibbs_avg.std()        # take std across concurrent sampled states
-
-    # energy
-    en_matrix = en_history[:, 0, :]
-    en_gibbs_avg = en_matrix.mean(axis=0)
-    en = en_gibbs_avg.mean()
-    en_error = en_gibbs_avg.std()
-
-    # heat capacity
-    cv_gibbs_avg = model_size*(en_history[:, 1, :].mean(axis=0) - en_gibbs_avg*en_gibbs_avg)/(parameters['temperature']*parameters['temperature'])
-    cv = cv_gibbs_avg.mean()
-    cv_error = cv_gibbs_avg.std()
-
-    print("mag : " + str(mag) + " +-" + str(mag_error) + "; chi : " + str(susc) + " +-" + str(susc_error))
-    print("en : " + str(en) + " +-" + str(en_error) + "; cv : " + str(cv) + " +-" + str(cv_error))
-    
-	
-
-
-
 def imgshow(file_name, img):
     npimg = np.transpose(img.numpy(), (1, 2, 0))
     f = "./%s.png" % file_name
@@ -266,13 +235,7 @@ if args.verbose:
 model_size = parameters['ising']['size'] * parameters['ising']['size']
 rbm = rbm_pytorch.RBM(n_vis=model_size, n_hid=model_size)
 
-print("Loading saved network state from file", parameters['checkpoint'], epoch)
-rbm.load_state_dict(torch.load(parameters['checkpoint']+str(epoch)))
-v, magv, magh, env = sample_from_rbm(parameters['steps'], rbm, parameters['ising']['size'], parameters['concurrent samples'])
-ising_averages_gs(magv, env, model_size, "v")
 
-
-"""
 if parameters['do_convergence_analysis']:
 
   ###################################################################
@@ -460,7 +423,7 @@ else:
 
   analysis_file.close()
 
-"""
+
 
 """
 example of input json file:
