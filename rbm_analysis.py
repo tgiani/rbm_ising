@@ -277,11 +277,6 @@ if args.verbose:
 model_size = parameters['ising']['size'] * parameters['ising']['size']
 rbm = rbm_pytorch.RBM(n_vis=model_size, n_hid=model_size)
 
-print("Loading saved network state from file", parameters['checkpoint'])
-rbm.load_state_dict(torch.load(parameters['checkpoint']))
-v, magv, magh, env = sample_from_rbm(parameters['steps'], rbm, parameters['ising']['size'], parameters['concurrent samples'])
-ising_averages_gs(magv, env, model_size, "v")
-
 
 if parameters['do_convergence_analysis']:
 
