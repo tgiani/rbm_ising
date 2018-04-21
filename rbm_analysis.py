@@ -70,6 +70,11 @@ def energy_concurrent_sampling(field, beta=1.0):
 
 
 def ising_averages(mag_history, en_history, model_size, label=""):
+    """ 
+    Get observables using statistic of more idependent gibbs sampling.
+    
+    """
+    
     resample_size = parameters['steps']-parameters['thermalization']      # number of states in each resampled set s_i
     # using concurrent sampling
     # magnetization
@@ -95,6 +100,43 @@ def ising_averages(mag_history, en_history, model_size, label=""):
     cv_error = cv_gibbs_avg.std()
     
     return mag, mag_error, en, en_error, susc, susc_error, cv, cv_error
+
+
+def ising_averages_gs(mag_history, en_history, model_size, label=""):
+    """ 
+    Get observables using statistic of a single gibbs sampling.
+    In order to get the same statistic as metropolis, in the json file use:
+    - steps = 2000000
+    - save interval = 1000
+    - thermalization = 20000
+    - concurrent samples = 1
+
+    """
+    resample_size = parameters['steps']-parameters['thermalization']      # number of states in each resampled set s_i
+    # using the statistic of a single gibbs sampling 
+    # magnetization
+    mag_matrix = mag_history[:, 0, :]        # get a matrix with just the magnetization, along the columns we have mag of different gibbs sampled states, along the lines differen conc samplings
+    mag_gibbs_avg = mag_matrix.mean(axis=0)  # take the mean across gibbs sampled states
+    mag = mag_gibbs_avg.mean()               # take the mean across concurrent sampled states
+    mag_error = mag_matrix.std(axis=0)[0]/sqrt(mag_matrix.size)  # take std of the mean for gibbs sampling
+
+    # susceptibility; how compute the error?? Need to implement bootstrap
+    susc_gibbs_avg = model_size*(mag_history[:, 1, :].mean(axis=0)- mag_gibbs_avg*mag_gibbs_avg)/parameters['temperature']
+    susc = susc_gibbs_avg.mean()             # take mean cross concurrent samplings
+
+    # energy
+    en_matrix = en_history[:, 0, :]
+    en_gibbs_avg = en_matrix.mean(axis=0)
+    en = en_gibbs_avg.mean()
+    en_error = en_matrix.std(axis=0)[0]/sqrt(en_matrix.size)
+
+    # heat capacity; how compute the error?? Need to implement bootstrap
+    cv_gibbs_avg = model_size*(en_history[:, 1, :].mean(axis=0) - en_gibbs_avg*en_gibbs_avg)/(parameters['temperature']*parameters['temperature'])
+    cv = cv_gibbs_avg.mean()
+    cv_error = cv_gibbs_avg.std()
+    
+    print("mag : " + str(mag) + " +- " + str(mag_error) + "; chi : " + str(susc) + " +- " + str(susc_error))
+    print("energy : " + str(en) + " +- " + str(en_error) + "; cv : " + str(cv) + " +- " + str(cv_error))
 
 
 def imgshow(file_name, img):
@@ -202,7 +244,7 @@ def sample_from_rbm(steps, model, image_size, nstates=30, v_in=None):
         
         
             # Save data
-        if (s > parameters['thermalization']):
+        if (s > parameters['thermalization'] and s % parameters['save interval'] == 0):
             magv.append(ising_magnetization(get_ising_variables(v.numpy())))
             magh.append(ising_magnetization(get_ising_variables(h.numpy())))
             env.append(energy_concurrent_sampling(get_ising_variables(v.numpy())))
@@ -234,6 +276,11 @@ if args.verbose:
 
 model_size = parameters['ising']['size'] * parameters['ising']['size']
 rbm = rbm_pytorch.RBM(n_vis=model_size, n_hid=model_size)
+
+print("Loading saved network state from file", parameters['checkpoint'])
+rbm.load_state_dict(torch.load(parameters['checkpoint']))
+v, magv, magh, env = sample_from_rbm(parameters['steps'], rbm, parameters['ising']['size'], parameters['concurrent samples'])
+ising_averages_gs(magv, env, model_size, "v")
 
 
 if parameters['do_convergence_analysis']:
