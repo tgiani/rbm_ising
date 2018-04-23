@@ -358,7 +358,7 @@ if parameters['do_convergence_analysis']:
             free_energy_.append(data_free_energy.data[0])
 
         v, magv, magh, env = sample_from_rbm(parameters['steps'], rbm, parameters['ising']['size'], parameters['concurrent samples'])
-        mag[n], mag_err[n], en[n], en_err[n], susc[n], susc_err[n], cv[n], cv_err[n] =  ising_averages(magv, env, model_size, "v")
+        mag[n], mag_err[n], en[n], en_err[n], susc[n], susc_err[n], cv[n], cv_err[n] =  ising_averages_gs(magv, env, model_size, "v")
         epochs[n] = epoch
 
         free_energy_mean = np.mean(free_energy_)   # take the average avross the batches, so that we have the mean across the whole training set
@@ -460,7 +460,7 @@ else:
         rbm.load_state_dict(torch.load(parameters['checkpoint']+str(T)))
        
         v, magv, magh, env = sample_from_rbm(parameters['steps'], rbm, parameters['ising']['size'], parameters['concurrent samples'])
-        mag[T], mag_err[T], en[T], en_err[T], susc[T], susc_err[T], cv[T], cv_err[T] =  ising_averages(magv, env, model_size, "v")
+        mag[T], mag_err[T], en[T], en_err[T], susc[T], susc_err[T], cv[T], cv_err[T] =  ising_averages_gs(magv, env, model_size, "v")
         temperatures[T] = parameters['start_temperature'] + float(T)/10 
        
         # need to rescale susc and cv according to the temperature
