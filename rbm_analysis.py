@@ -170,10 +170,7 @@ def ising_averages_gs(mag_history, en_history, model_size, label=""):
      average_en_i = sample_i.mean(axis=0)
      cv_gibbs_avg[i] = model_size*((sample_i**2).mean(axis=0)- average_en_i*average_en_i)/(parameters['temperature']*parameters['temperature'])
     cv_error = cv_gibbs_avg.std()
-    cv_b = cv_gibbs_avg.mean()
-    
-    #print("mag : " + str(mag) + " +- " + str(mag_error) + "; chi : " + str(susc) + " +- " + str(susc_error) )
-    #print("energy : " + str(en) + " +- " + str(en_error) + "; cv : " + str(cv) + " +- " + str(cv_error))
+ 
     return mag, mag_error, en, en_error, susc, susc_error, cv_error
 
 def imgshow(file_name, img):
