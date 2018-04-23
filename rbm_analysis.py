@@ -29,6 +29,28 @@ from rbm_pytorch import log_sum_exp
 from rbm_pytorch import log_diff_exp
 
 
+def bootstrap_resample(X, n=None):
+    """ Bootstrap resample an array_like
+    Parameters
+    ----------
+    X : array_like
+      data to resample
+    n : int, optional
+      length of resampled array, equal to len(X) if n==None
+    Results
+    -------
+    returns X_resamples
+    """
+    if isinstance(X, pd.Series):
+        X = X.copy()
+        X.index = range(len(X.index))
+    if n == None:
+        n = len(X)
+        
+    resample_i = np.floor(np.random.rand(n)*len(X)).astype(int)
+    X_resample = np.array(X[resample_i])  
+    return X_resample
+
 
 def get_ising_variables(field, sign=-1):
     """ Get the Ising variables {-1,1} representation
@@ -112,32 +134,47 @@ def ising_averages_gs(mag_history, en_history, model_size, label=""):
     - concurrent samples = 1
 
     """
-    resample_size = parameters['steps']-parameters['thermalization']      # number of states in each resampled set s_i
-    # using the statistic of a single gibbs sampling 
+    n_resamplings = parameters['steps']-parameters['thermalization']      # number of resampled states used in bootstrap
     # magnetization
     mag_matrix = mag_history[:, 0, :]        # get a matrix with just the magnetization, along the columns we have mag of different gibbs sampled states, along the lines differen conc samplings
     mag_gibbs_avg = mag_matrix.mean(axis=0)  # take the mean across gibbs sampled states
     mag = mag_gibbs_avg.mean()               # take the mean across concurrent sampled states
     mag_error = mag_matrix.std(axis=0)[0]/sqrt(mag_matrix.size)  # take std of the mean for gibbs sampling
 
-    # susceptibility; how compute the error?? Need to implement bootstrap
+    # susceptibility 
     susc_gibbs_avg = model_size*(mag_history[:, 1, :].mean(axis=0)- mag_gibbs_avg*mag_gibbs_avg)/parameters['temperature']
-    susc = susc_gibbs_avg.mean()             # take mean cross concurrent samplings
+    susc = susc_gibbs_avg.mean() # take mean cross concurrent samplings 
 
+    # error on susceptibility using bootstrap
+    susc_gibbs_avg = np.zeros(n_resamplings)
+    for i in range(n_resamplings):
+     sample_i = bootstrap_resample(mag_matrix)
+     average_m_i = sample_i.mean(axis=0)
+     susc_gibbs_avg[i] = model_size*((sample_i**2).mean(axis=0)- average_m_i*average_m_i)/parameters['temperature']
+    susc_error = susc_gibbs_avg.std()
+    
     # energy
     en_matrix = en_history[:, 0, :]
     en_gibbs_avg = en_matrix.mean(axis=0)
     en = en_gibbs_avg.mean()
     en_error = en_matrix.std(axis=0)[0]/sqrt(en_matrix.size)
 
-    # heat capacity; how compute the error?? Need to implement bootstrap
+    # heat capacity
     cv_gibbs_avg = model_size*(en_history[:, 1, :].mean(axis=0) - en_gibbs_avg*en_gibbs_avg)/(parameters['temperature']*parameters['temperature'])
     cv = cv_gibbs_avg.mean()
-    cv_error = cv_gibbs_avg.std()
-    
-    print("mag : " + str(mag) + " +- " + str(mag_error) + "; chi : " + str(susc) + " +- " + str(susc_error))
-    print("energy : " + str(en) + " +- " + str(en_error) + "; cv : " + str(cv) + " +- " + str(cv_error))
 
+    # error on heat capacity using bootstrap
+    cv_gibbs_avg = np.zeros(n_resamplings)
+    for i in range(n_resamplings):
+     sample_i = bootstrap_resample(en_matrix)
+     average_en_i = sample_i.mean(axis=0)
+     cv_gibbs_avg[i] = model_size*((sample_i**2).mean(axis=0)- average_en_i*average_en_i)/(parameters['temperature']*parameters['temperature'])
+    cv_error = cv_gibbs_avg.std()
+    cv_b = cv_gibbs_avg.mean()
+    
+    #print("mag : " + str(mag) + " +- " + str(mag_error) + "; chi : " + str(susc) + " +- " + str(susc_error) )
+    #print("energy : " + str(en) + " +- " + str(en_error) + "; cv : " + str(cv) + " +- " + str(cv_error))
+    return mag, mag_error, en, en_error, susc, susc_error, cv_error
 
 def imgshow(file_name, img):
     npimg = np.transpose(img.numpy(), (1, 2, 0))
