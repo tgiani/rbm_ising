@@ -1,0 +1,13 @@
+{
+  "epochs" : 100,
+  "batch" : 200,
+  "hidden_layers" : 8,
+  "ising" : { "train_data": "./state_8_03_0.txt",  
+              "train_dimension" : 100001,
+              "size": 8 },
+  "kCD" : 1,
+  "start_epoch" : 1,
+  "layers" : 2
+    
+ }
+
