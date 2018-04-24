@@ -128,8 +128,8 @@ def ising_averages_gs(mag_history, en_history, model_size, label=""):
     """ 
     Get observables using statistic of a single gibbs sampling.
     In order to get the same statistic as metropolis, in the json file use:
-    - steps = 2000000
-    - save interval = 1000
+    - steps = 2020001
+    - save interval = 100
     - thermalization = 20000
     - concurrent samples = 1
 
@@ -171,7 +171,7 @@ def ising_averages_gs(mag_history, en_history, model_size, label=""):
      cv_gibbs_avg[i] = model_size*((sample_i**2).mean(axis=0)- average_en_i*average_en_i)/(parameters['temperature']*parameters['temperature'])
     cv_error = cv_gibbs_avg.std()
  
-    return mag, mag_error, en, en_error, susc, susc_error, cv_error
+    return mag, mag_error, en, en_error, susc, susc_error, cv, cv_error
 
 def imgshow(file_name, img):
     npimg = np.transpose(img.numpy(), (1, 2, 0))
