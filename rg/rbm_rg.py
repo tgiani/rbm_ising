@@ -78,14 +78,14 @@ def ising_averages(mag_history, model_size, label="", n=1):
     mag_avg = mag_gibbs_avg.mean()               # take the mean across concurrent sampled states
     mag_error = mag_matrix.std(axis=0)[0]
     return mag_avg, mag_error
-
+    
 
 def gibbs_sampling(steps, model, cs=1):
     """
     Run gibbs sampling 
     """
     v = torch.zeros(cs, model.v_bias.data.shape[0])
-    hidden = torch.zeros(cs, model.v_bias.data.shape[0])
+    hidden = torch.zeros(cs, model.h_bias.data.shape[0])
     v_prob = v
     magv = []
     magh = []
@@ -127,11 +127,7 @@ if args.verbose:
     pprint(parameters)
 
 
-# read RBM structure parameters
-# for now they will be the same for every layer
-hidden_layers = parameters['hidden_layers'] * parameters['hidden_layers']
-image_size = parameters['ising']['size']
-model_size = image_size * image_size
+
 n = parameters['ising']['train_dimension']
 h = [0 for i in range(parameters['layers']+1)]
 
@@ -144,6 +140,15 @@ wd = 0.0    # weight decay
 
 # load the first training set coming from magneto
 print("=================Preliminary results =================================")
+
+# RBM architecture
+layer = [0 for i in range(parameters['layers']+2)]
+layer[0] = parameters['ising']['size']*parameters['ising']['size']
+layer[1] = parameters['hidden_layers'] * parameters['hidden_layers']
+model_size = layer[0]
+
+
+
 print("Loading Ising training set...")
 train_loader = rbm_pytorch.CSV_Ising_dataset(parameters['ising']['train_data'], size=model_size)
 
@@ -155,14 +160,15 @@ print("Step 0 : m = " + str(m) + ", m.std =" + str(mstd))
 
 
 for ii in range(parameters['layers']+1):
+
    # load the RBM to be trained
    train_loader_batch = torch.utils.data.DataLoader(train_loader, shuffle=True, batch_size = parameters['batch'], drop_last=True) # necessary to use batch during training
-   rbm = rbm_pytorch.RBM(k = parameters['kCD'], n_vis = model_size, n_hid = hidden_layers) # for the moment don't reduce the number of units
+   rbm = rbm_pytorch.RBM(k = parameters['kCD'], n_vis = layer[ii], n_hid = layer[ii+1]) 
 
    train_op = optim.SGD(rbm.parameters(), lr=learning_rate,
                      momentum=mom, dampening=damp, weight_decay=wd)
    print("=====================================================================")
-   print("Starting training rbm number " + str(ii))
+   print("Starting training rbm number " + str(ii) + " : " + str(layer[ii]) +"x" + str(layer[ii+1]))
    pbar = tqdm(range(parameters['start_epoch'], parameters['epochs']))
 
    # Run the RBM training
@@ -172,7 +178,7 @@ for ii in range(parameters['layers']+1):
        free_energy_ = []
 
        for i, (data, target) in enumerate(train_loader_batch):
-           data_input = Variable(data.view(-1, model_size))
+           data_input = Variable(data.view(-1, layer[ii]))
            # how to randomize?
            new_visible, hidden, h_prob, v_prob = rbm(data_input)
 
@@ -200,20 +206,26 @@ for ii in range(parameters['layers']+1):
 
    # now load the trained rbm and generate a new training using p(h|v)
    print("Loading rbm number " + str(ii))
-   rbm = rbm_pytorch.RBM(n_vis=model_size, n_hid=hidden_layers)
+   rbm = rbm_pytorch.RBM(n_vis=layer[ii], n_hid=layer[ii+1])
    rbm.load_state_dict(torch.load("trained_rbm.pytorch." + str(ii)))
-   magv_history, magh_history, h[ii] = gibbs_sampling(parameters['steps'], rbm)  
-   mv, mvstd = ising_averages(magv_history, model_size)
-   mh, mhstd = ising_averages(magh_history, model_size)
+   magv_history, magh_history, h[ii] = gibbs_sampling(parameters['steps'], rbm) 
+   print("Number visible : " + str(layer[ii]) + "; Number hidden : " + str(layer[ii+1])) 
+   mv, mvstd = ising_averages(magv_history, layer[ii])
+   mh, mhstd = ising_averages(magh_history, layer[ii])
    print("Results rbm number " + str(ii))
    print("Visible layer : m = " + str(mv) + ", m.std =" + str(mvstd))
    print("Hidden layer : m = " + str(mh) + ", m.std =" + str(mhstd))
    
-   # load the second training set  
-   print("Loading training set number " + str(ii+1))
-   train_loader = rbm_pytorch.np_Ising_dataset(h[ii], size=model_size)
-  
-  
+   if (ii < parameters['layers']):
+    # load the second training set  
+    print("Loading training set number " + str(ii+1))
+    train_loader = rbm_pytorch.np_Ising_dataset(h[ii], size=layer[ii])
+    layer[ii+2] = layer[ii+1]/2
+
+
+print("=====================================================================")
+print("Completed")
+print(layer)
 
 
 
