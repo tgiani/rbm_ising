@@ -1,5 +1,5 @@
 {
-  "epochs" : 100,
+  "epochs" : 1000,
   "batch" : 200,
   "hidden_layers" : 8,
   "ising" : { "train_data": "./state_8_03_0.txt",  
@@ -7,7 +7,10 @@
               "size": 8 },
   "kCD" : 1,
   "start_epoch" : 1,
-  "layers" : 2
+  "layers" : 2,
+  "steps" : 1000000, 
+  "save_interval" : 100,
+  "thermalization" : 1000
     
  }
 

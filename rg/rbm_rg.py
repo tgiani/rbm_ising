@@ -73,11 +73,12 @@ def ising_magnetization(field):
     return np.array([m, m * m])
 
 def ising_averages(mag_history, model_size, label="", n=1):
-    # magnetization
-    mag_vector = mag_history[0, :]    # get a vector with the magnetization of each state
-    mag_avg = mag_vector.mean()       # take the mean 
-    mag_error = mag_vector.std()      # take the std
+    mag_matrix = mag_history[:, 0, :]        # get a matrix with just the magnetization, along the columns we have mag of different gibbs sampled states, along the lines differen conc samplings
+    mag_gibbs_avg = mag_matrix.mean(axis=0)  # take the mean across gibbs sampled states
+    mag_avg = mag_gibbs_avg.mean()               # take the mean across concurrent sampled states
+    mag_error = mag_matrix.std(axis=0)[0]
     return mag_avg, mag_error
+
 
 def gibbs_sampling(steps, model, cs=1):
     """
@@ -142,16 +143,14 @@ wd = 0.0    # weight decay
 
 
 # load the first training set coming from magneto
+print("=================Preliminary results =================================")
 print("Loading Ising training set...")
 train_loader = rbm_pytorch.CSV_Ising_dataset(parameters['ising']['train_data'], size=model_size)
 
 # computing observables for the first training set
-train_data = torch.zeros(n, model_size)
-for i in range(n):
-  train_data[i] = train_loader[i][0].view(-1, model_size)
-
-m_history = ising_magnetization(get_ising_variables(train_data.numpy()))
-m, mstd = ising_averages(m_history, model_size)
+m_history = ising_magnetization(get_ising_variables(train_loader[:][0].view(-1, model_size).numpy()))
+m = m_history[0, :].mean()
+mstd = m_history[0, :].std()
 print("Step 0 : m = " + str(m) + ", m.std =" + str(mstd))
 
 
@@ -162,7 +161,7 @@ for ii in range(parameters['layers']+1):
 
    train_op = optim.SGD(rbm.parameters(), lr=learning_rate,
                      momentum=mom, dampening=damp, weight_decay=wd)
-
+   print("=====================================================================")
    print("Starting training rbm number " + str(ii))
    pbar = tqdm(range(parameters['start_epoch'], parameters['epochs']))
 
@@ -214,25 +213,7 @@ for ii in range(parameters['layers']+1):
    print("Loading training set number " + str(ii+1))
    train_loader = rbm_pytorch.np_Ising_dataset(h[ii], size=model_size)
   
-
-
-
-
-
-   """
-   # this is useless but it should gives the same results...check it does
-   # computing observables for the second training set
-   train_data = torch.zeros(n, model_size)
-   for j in range(n):
-     train_data[j] = train_loader[j][0].view(-1, model_size)
-   print(train_data)
-
-   m_history = ising_magnetization(get_ising_variables(train_data.numpy()))
-   m, mstd = ising_averages(m_history, model_size)
-   print("Layer " + str(ii+1) + " : m = " + str(m) + ", m.std =" + str(mstd))
-   """
-
-
+  
 
 
 
