@@ -49,6 +49,13 @@ def hidden_from_visible(visible, W, h_bias):
     new_states = sample_probability(probability, random_field)
     return new_states, probability
 
+def visible_from_hidden(hid, W, v_bias):
+    # Enable or disable neurons depending on probabilities
+    probability = torch.sigmoid(F.linear(hid, W.t(), v_bias))
+    random_field = torch.rand(probability.size())
+    new_states = sample_probability(probability, random_field)
+    return new_states, probability
+
 def get_ising_variables(field, sign=-1):
     """ Get the Ising variables {-1,1} representation
     of the RBM Markov fields
@@ -65,12 +72,37 @@ def ising_magnetization(field):
     m = np.abs((field).mean(axis=1))
     return np.array([m, m * m])
 
-def ising_averages(mag_history, model_size, label=""):
+def ising_averages(mag_history, model_size, label="", n=1):
     # magnetization
     mag_vector = mag_history[0, :]    # get a vector with the magnetization of each state
     mag_avg = mag_vector.mean()       # take the mean 
     mag_error = mag_vector.std()      # take the std
     return mag_avg, mag_error
+
+def gibbs_sampling(steps, model, cs=1):
+    """
+    Run gibbs sampling 
+    """
+    v = torch.zeros(cs, model.v_bias.data.shape[0])
+    hidden = torch.zeros(cs, model.v_bias.data.shape[0])
+    v_prob = v
+    magv = []
+    magh = []
+
+    # Run the Gibbs sampling for a number of steps
+    pbar = tqdm(xrange(steps))
+
+    for s in pbar:
+        
+        h, h_prob = hidden_from_visible(v, model.W.data, model.h_bias.data)
+        v, v_prob = visible_from_hidden(h, model.W.data, model.v_bias.data)
+        # Save data
+        if (s > parameters['thermalization'] and s % parameters['save_interval']==0):
+            magv.append(ising_magnetization(get_ising_variables(v.numpy())))
+            magh.append(ising_magnetization(get_ising_variables(h.numpy())))
+            hidden = torch.cat((hidden,h),0)  # the produced hidden states are stack in a unique torch tensor
+                                              # so that they can be used as input for the next training
+    return np.asarray(magv), np.asarray(magh), hidden
 
 
 # Parse command line arguments
@@ -171,23 +203,34 @@ for ii in range(parameters['layers']+1):
    print("Loading rbm number " + str(ii))
    rbm = rbm_pytorch.RBM(n_vis=model_size, n_hid=hidden_layers)
    rbm.load_state_dict(torch.load("trained_rbm.pytorch." + str(ii)))
-
-   print("Generating new training set according to p(h|v)..")
-   h[ii], h_prob = hidden_from_visible(train_data, rbm.W.data, rbm.h_bias.data)
-
-   # load the second training set coming 
+   magv_history, magh_history, h[ii] = gibbs_sampling(parameters['steps'], rbm)  
+   mv, mvstd = ising_averages(magv_history, model_size)
+   mh, mhstd = ising_averages(magh_history, model_size)
+   print("Results rbm number " + str(ii))
+   print("Visible layer : m = " + str(mv) + ", m.std =" + str(mvstd))
+   print("Hidden layer : m = " + str(mh) + ", m.std =" + str(mhstd))
+   
+   # load the second training set  
    print("Loading training set number " + str(ii+1))
    train_loader = rbm_pytorch.np_Ising_dataset(h[ii], size=model_size)
+  
 
+
+
+
+
+   """
+   # this is useless but it should gives the same results...check it does
    # computing observables for the second training set
    train_data = torch.zeros(n, model_size)
    for j in range(n):
      train_data[j] = train_loader[j][0].view(-1, model_size)
+   print(train_data)
 
    m_history = ising_magnetization(get_ising_variables(train_data.numpy()))
    m, mstd = ising_averages(m_history, model_size)
    print("Layer " + str(ii+1) + " : m = " + str(m) + ", m.std =" + str(mstd))
-
+   """
 
 
 
