@@ -142,11 +142,8 @@ wd = 0.0    # weight decay
 print("=================Preliminary results =================================")
 
 # RBM architecture
-layer = [0 for i in range(parameters['layers']+2)]
-layer[0] = parameters['ising']['size']*parameters['ising']['size']
-layer[1] = parameters['hidden_layers'] * parameters['hidden_layers']
+layer = [1024, 400, 100, 25]
 model_size = layer[0]
-
 
 
 print("Loading Ising training set...")
@@ -220,7 +217,6 @@ for ii in range(parameters['layers']+1):
     # load the second training set  
     print("Loading training set number " + str(ii+1))
     train_loader = rbm_pytorch.np_Ising_dataset(h[ii], size=layer[ii])
-    layer[ii+2] = layer[ii+1]/2
 
 
 print("=====================================================================")
