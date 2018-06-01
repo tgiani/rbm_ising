@@ -127,11 +127,9 @@ pbar = tqdm(range(args.start_epoch, args.epochs))
 loss_file = open(args.text_output_dir + "Loss_timeline.data_" + str(args.model) + "_lr" + str(learning_rate) + "_wd" + str(wd) + "_mom" + str(
     mom) + "_epochs" + str(args.epochs), "w", buffering=1)
 
-#loss_file.write("#Epoch \t  Loss mean \t free energy mean \t reconstruction error mean \n")
-
 #Changed loss file output, changing headings here too
 
-loss_file.write("#Epoch \t free energy mean \t logz \t loglikelihood \n")
+loss_file.write("#Epoch \t  Loss mean \t reconstruction error mean \t free energy mean \t logz \t ll mean \t ll error up \t ll error down \n")
 
 # Run the RBM training
 for epoch in pbar:
@@ -171,7 +169,7 @@ for epoch in pbar:
         ll_error_up = (-logz_down + logz)
         ll_error_down = (-logz + logz_up)
 
-        loss_file.write(str(epoch) + "\t" +  str(free_energy_mean) + "\t" + str(logz) + "\t" + str(log_likelihood_mean) + "\t"  + str(ll_error_up) + "\t" + str(ll_error_down) + "\n")
+        loss_file.write(str(epoch)  + "\t" + str(loss_mean)+ "\t" + str(re_mean) + "\t" +  str(free_energy_mean) + "\t" + str(logz) + "\t" + str(log_likelihood_mean) + "\t"  + str(ll_error_up) + "\t" + str(ll_error_down) + "\n")
         
         print("=== log_likelihood ===")
         print(log_likelihood_mean)
