@@ -177,8 +177,8 @@ for epoch in pbar:
     pbar.set_description("Epoch %3d - Loss %8.5f - RE %5.3g  " % (epoch, loss_mean, re_mean))
 
     if epoch % 10 == 0:
-        torch.save(rbm.state_dict(), "trained_rbm.pytorch." + str(epoch))
+        torch.save(rbm.state_dict(), args.text_output_dir + "trained_rbm.pytorch." + str(epoch))
 
 # Save the final model
-torch.save(rbm.state_dict(), "trained_rbm.pytorch.last")
+torch.save(rbm.state_dict(), args.text_output_dir + "trained_rbm.pytorch.last")
 loss_file.close()
