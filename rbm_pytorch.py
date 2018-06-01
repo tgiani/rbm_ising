@@ -119,18 +119,20 @@ class RBM(nn.Module):
 
     def hidden_from_visible(self, visible, beta = 1.0):
         # Enable or disable neurons depending on probabilities
-        probability = torch.sigmoid(F.linear(visible, self.W, self.h_bias))
+        activation = F.linear(visible, self.W, self.h_bias)
         if beta is not None:
-            probability *= beta
+            activation *= beta
+        probability = torch.sigmoid(activation)
         random_field = Variable(torch.rand(probability.size()))
         new_states = self.sample_probability(probability, random_field)
         return new_states, probability
 
     def visible_from_hidden(self, hid, beta = 1.0):
         # Enable or disable neurons depending on probabilities
-        probability = torch.sigmoid(F.linear(hid, self.W.t(), self.v_bias))
+        activation = F.linear(hid, self.W.t(), self.v_bias)
         if beta is not None:
-            probability *= beta
+            activation *= beta
+        probability = torch.sigmoid(activation)
         random_field = Variable(torch.rand(probability.size()))
         new_states = self.sample_probability(probability, random_field)
 
@@ -229,6 +231,7 @@ class RBM(nn.Module):
         # Set betas
         if np.isscalar(betas):
             betas = np.linspace(0.0, 1.0, betas)
+        print("betas vector" + str(betas))
         
         # Start with random distribution beta = 0
         #hzero = Variable(torch.zeros(num_chains, self.n_hid), volatile= True)
@@ -242,6 +245,7 @@ class RBM(nn.Module):
         lnpv_sum = -self.free_energy(v, betas[0])  #  denominator
 
         for beta in betas[1:betas.shape[0] - 1]:
+            print("beta for" +str(beta))
             # Calculate the unnormalized probabilties of v
             lnpv_sum += self.free_energy(v, beta)
 
@@ -253,10 +257,11 @@ class RBM(nn.Module):
             lnpv_sum -= self.free_energy(v, beta)
 
         # Calculate the unnormalized probabilties of v
+        print("last"+str(betas[betas.shape[0] - 1]))
         lnpv_sum += self.free_energy(v, betas[betas.shape[0] - 1])
 
         lnpv_sum = np.float128(lnpv_sum.data.numpy())
-        #print("lnpvsum", lnpv_sum)
+        print("lnpvsum", lnpv_sum)
 
         # Calculate an estimate of logz . 
         logz = log_sum_exp(lnpv_sum) - np.log(num_chains)
@@ -285,7 +290,7 @@ class RBM(nn.Module):
 
     def log_partition_function_infinite_temperature(self):
         # computes log ( p(v) ) for random states
-        return (self.n_vis + self.n_hid) * np.log(2.0)
+        return (self.n_vis) * np.log(2.0)
 
     def free_energy(self, v, beta=1.0):
         # computes log( p(v) )

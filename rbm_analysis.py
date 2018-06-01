@@ -134,7 +134,7 @@ def ising_averages_gs(mag_history, en_history, model_size, label=""):
     - concurrent samples = 1
 
     """
-    n_resamplings = parameters['steps']-parameters['thermalization']      # number of resampled states used in bootstrap
+    n_resamplings = 10000      # number of resampled states used in bootstrap
     # magnetization
     mag_matrix = mag_history[:, 0, :]        # get a matrix with just the magnetization, along the columns we have mag of different gibbs sampled states, along the lines differen conc samplings
     mag_gibbs_avg = mag_matrix.mean(axis=0)  # take the mean across gibbs sampled states
@@ -309,7 +309,7 @@ if args.verbose:
 
 
 model_size = parameters['ising']['size'] * parameters['ising']['size']
-rbm = rbm_pytorch.RBM(n_vis=model_size, n_hid=model_size)
+rbm = rbm_pytorch.RBM(n_vis=model_size, n_hid=parameters['hidden_layers'])
 
 
 if parameters['do_convergence_analysis']:
@@ -345,7 +345,7 @@ if parameters['do_convergence_analysis']:
 
   for epoch in pbar:
 
-    if epoch % 10 == 0:
+    if epoch % 20 == 0:
 
         print("Loading saved network state from file", parameters['checkpoint'], epoch)
         rbm.load_state_dict(torch.load(parameters['checkpoint']+str(epoch)))
@@ -539,120 +539,6 @@ python rbm_analysis --json file.json
 
 
 
-
-###### [WIP]: Implementation of D_kl ######
-
-
-def ising_matrix():
-    N = parameters['ising']['size']
-    a = np.zeros(shape=(N*N,N*N))
-    for i in range (0,N):
-       for j in range (0,N):
-          a[N*i+j][N*i+(j+1)%N] -= 1
-          a[N*i+j][N*((i+1)%N)+j] -= 1
-    return Variable(torch.from_numpy(a))  # added variable to have it workinh for Z
-
-
-def ising_free_energy(v, ising_matrix, beta=1.0):
-    v = v.double()
-    ising_matrix_mult = torch.sum(torch.mul(v,(v.mm(ising_matrix))), 1)   
-    return ising_matrix_mult.mul(-beta)  # = -beta*E_ising
-
-
-def annealed_importance_sampling_ising(H, k = 1, betas = 10000, num_chains = 100):
-        """
-        Approximates the partition function for the given model using annealed importance sampling.
-
-            .. seealso:: Accurate and Conservative Estimates of MRF Log-likelihood using Reverse Annealing \
-               http://arxiv.org/pdf/1412.8566.pdf
-
-        :param num_chains: Number of AIS runs.
-        :type num_chains: int
-
-        :param k: Number of Gibbs sampling steps.
-        :type k: int
-
-        :param betas: Number or a list of inverse temperatures to sample from.
-        :type betas: int, numpy array [num_betas]
-        """
-        
-        # Set betas
-        if np.isscalar(betas):
-            betas = np.linspace(0.0, 1.0, betas)
-        ############## Convergence analysis ####################
-        # Start with random distribution beta = 0
-        #hzero = Variable(torch.zeros(num_chains, self.n_hid), volatile= True)
-        #v = self.visible_from_hidden(hzero, beta= betas[0]);
-
-        v = Variable(torch.sign(torch.rand(num_chains,rbm.n_vis)-0.5), volatile = True)  
-        v = F.relu(v)
-
-        # Calculate the unnormalized probabilties of v
-        # HERE: need another function that does not average across batches....
-        lnpv_sum = -ising_free_energy(v, H, betas[0])  #  denominator
-
-        for beta in betas[1:betas.shape[0] - 1]:
-            # Calculate the unnormalized probabilties of v
-            lnpv_sum += ising_free_energy(v, H, beta)
-
-           # Sample k times from the intermidate distribution
-            for _ in range(0, k):
-                h, ph, v, pv = rbm.new_state(v, beta)
-
-            # Calculate the unnormalized probabilties of v
-            lnpv_sum -= ising_free_energy(v, H, beta)
-
-        # Calculate the unnormalized probabilties of v
-        lnpv_sum += ising_free_energy(v, H, betas[betas.shape[0] - 1])
-
-        lnpv_sum = np.float128(lnpv_sum.data.numpy())
-        #print("lnpvsum", lnpv_sum)
-
-        # Calculate an estimate of logz . 
-        logz = log_sum_exp(lnpv_sum) - np.log(num_chains)
-
-        # Calculate +/- 3 standard deviations
-        lnpvmean = np.mean(lnpv_sum)
-        lnpvstd = np.log(np.std(np.exp(lnpv_sum - lnpvmean))) + lnpvmean - np.log(num_chains) / 2.0
-        lnpvstd = np.vstack((np.log(3.0) + lnpvstd, logz))
-        #print("lnpvstd", lnpvstd)
-        #print("lnpvmean", lnpvmean)
-        #print("logz", logz)
-
-        # Calculate partition function of base distribution
-        baselogz = rbm.log_partition_function_infinite_temperature()
-
-        # Add the base partition function
-        logz = logz + baselogz
-        logz_up = log_sum_exp(lnpvstd) + baselogz
-        logz_down = log_diff_exp(lnpvstd) + baselogz
-
-        return logz , logz_up, logz_down
-
-
-
-
-
-
-
-
-"""
-
-# test ising matrix
-H = ising_matrix()
-v = Variable(torch.sign(torch.rand(100,64)-0.5), volatile = True)                # need a variable since H is also a variable (to work properly with Z)
-a = ising_free_energy(v,H)
-
-
-
-
-
-
-logzis, logz_upis, logz_downis = annealed_importance_sampling_ising(H, k=1, betas = 10000, num_chains = 200)
-print("LogZising ", logzis, logz_upis, logz_downis)
-
-
-"""
 
 
 
