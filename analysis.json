@@ -1,0 +1,25 @@
+{
+ 
+  "model": "ising",
+  "checkpoint": "./rg/training_100x25_ft/trained_rbm.pytorch.",
+  "start_epoch": 60,
+  "final_epoch": 980,
+  "batch_size": 200,
+  "steps": 2020001,  
+  "concurrent samples": 1,
+  "save interval" : 100,
+  "output_states": false,
+  "hidden_layers": 25,
+  "thermalization": 20000,
+  "image_dir": "./Data_Ising_test/",
+  "output_dir": "/scratch/RBM/RBM_analysis_100x25_ft/",
+  "ising": { "train_data": "./rg/state_10_2.1.txt", 
+             "size": 10 },
+  "initialize_with_training": false,
+  "temperature" : 2.21,
+  "do_convergence_analysis": true,
+  "start_temperature": 1.8,
+  "final_temperature": 3.0
+    
+
+ }
