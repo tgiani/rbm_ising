@@ -1,0 +1,16 @@
+{
+  "model": "ising",
+  "ckpoint": null,
+  "start_epoch": 1,
+  "epochs":2000,
+  "batch_size": 200,  
+  "hidden_size": 64,
+  "ising_size" : 64,
+  "kCD": 1,
+  "image_output_dir": "./",
+  "text_output_dir": "/scratch/RBM/RBM_ft_8x8/1.8/test_0.01_2-dim/",
+  "training_data": "/scratch/RBM/Ising_Trained_Machines/L8/training/state_8_03_0.txt",
+  "lrate": 0.01
+  
+ }
+

@@ -76,7 +76,6 @@ def log_diff_exp(x, axis=0):
         return np.squeeze(alpha + np.log(np.diff(np.exp(x - alpha), n=1, axis=0)))
 
 
-
 class CSV_Ising_dataset(Dataset):
     """ Defines a CSV reader """
     def __init__(self, csv_file, size=32, transform=None):
@@ -93,6 +92,7 @@ class CSV_Ising_dataset(Dataset):
 
     def __len__(self):
         return len(self.imgs)
+
 
 class RBM(nn.Module):
     def __init__(self, n_vis=784, n_hid=500, k=5):
@@ -231,7 +231,6 @@ class RBM(nn.Module):
         # Set betas
         if np.isscalar(betas):
             betas = np.linspace(0.0, 1.0, betas)
-        print("betas vector" + str(betas))
         
         # Start with random distribution beta = 0
         #hzero = Variable(torch.zeros(num_chains, self.n_hid), volatile= True)
@@ -245,7 +244,6 @@ class RBM(nn.Module):
         lnpv_sum = -self.free_energy(v, betas[0])  #  denominator
 
         for beta in betas[1:betas.shape[0] - 1]:
-            print("beta for" +str(beta))
             # Calculate the unnormalized probabilties of v
             lnpv_sum += self.free_energy(v, beta)
 
@@ -257,11 +255,9 @@ class RBM(nn.Module):
             lnpv_sum -= self.free_energy(v, beta)
 
         # Calculate the unnormalized probabilties of v
-        print("last"+str(betas[betas.shape[0] - 1]))
         lnpv_sum += self.free_energy(v, betas[betas.shape[0] - 1])
 
         lnpv_sum = np.float128(lnpv_sum.data.numpy())
-        print("lnpvsum", lnpv_sum)
 
         # Calculate an estimate of logz . 
         logz = log_sum_exp(lnpv_sum) - np.log(num_chains)
@@ -270,10 +266,7 @@ class RBM(nn.Module):
         lnpvmean = np.mean(lnpv_sum)
         lnpvstd = np.log(np.std(np.exp(lnpv_sum - lnpvmean))) + lnpvmean - np.log(num_chains) / 2.0
         lnpvstd = np.vstack((np.log(3.0) + lnpvstd, logz))
-        #print("lnpvstd", lnpvstd)
-        #print("lnpvmean", lnpvmean)
-        #print("logz", logz)
-
+        
         # Calculate partition function of base distribution
         baselogz = self.log_partition_function_infinite_temperature()
 
@@ -283,10 +276,6 @@ class RBM(nn.Module):
         logz_down = log_diff_exp(lnpvstd) + baselogz
 
         return logz , logz_up, logz_down
-
-
-
-
 
     def log_partition_function_infinite_temperature(self):
         # computes log ( p(v) ) for random states

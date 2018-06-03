@@ -13,6 +13,7 @@ from __future__ import print_function
 
 import numpy as np
 import matplotlib.pyplot as plt
+import sys
 
 from tqdm import *
 
@@ -29,6 +30,7 @@ from torch.utils.data import Dataset
 from torchvision import datasets, transforms
 from torchvision.utils import make_grid, save_image
 from math import exp
+import json
 
 import rbm_pytorch
 
@@ -48,38 +50,29 @@ def imgshow(file_name, img):
 
 # Parse command line arguments
 parser = argparse.ArgumentParser(description='Process some integers.')
-parser.add_argument('--model', dest='model', default='mnist', help='choose the model',
-                    type=str, choices=['mnist', 'ising'])
-parser.add_argument('--ckpoint', dest='ckpoint', help='pass a saved state',
+parser.add_argument('--json', dest='input_json', default='params.json', help='JSON file describing the sample parameters',
                     type=str)
-parser.add_argument('--start', dest='start_epoch', default=1, help='starting epoch',
-                    type=int)
-parser.add_argument('--epochs', dest='epochs', default=10, help='number of epochs',
-                    type=int)
-parser.add_argument('--batch', dest='batches', default=128, help='batch size',
-                    type=int)
-parser.add_argument('--hidden', dest='hidden_size', default=500, help='hidden feature size',
-                    type=int)
-parser.add_argument('--ising_size', dest='ising_size', default=32, help='lattice size for this Ising 2D model',
-                    type=int)
-parser.add_argument('--k', dest='kCD', default=2, help='number of Contrastive Divergence steps',
-                    type=int)
-parser.add_argument('--imgout', dest='image_output_dir', default='./', help='directory in which to save output images',
-                    type=str)
-parser.add_argument('--train', dest='training_data', default='state0.data', help='path to training input data',
-                    type=str)
-parser.add_argument('--txtout', dest='text_output_dir', default='./', help='directory in which to save text output data',
-                    type=str)
-parser.add_argument('--lrate', dest='lrate', default='0.01', help='learning rate',
-                    type=str)
+parser.add_argument('--verbose', dest='verbose', default=False, help='Verbosity control',
+                    type=bool, choices=[False, True])
+
+args = parser.parse_args()
+try:
+    parameters = json.load(open(args.input_json))
+except IOError as e:
+    print("I/O error({0}): {1}".format(e.errno, e.strerror))
+except:
+    print("Unexpected error:", sys.exc_info()[0])
+    raise
 
 args = parser.parse_args()
 print(args)
+
+
 print("Using library:", torch.__file__)
-hidden_layers = args.hidden_size * args.hidden_size
+hidden_layers = parameters['hidden_size'] # note that you have to give the full dimension LxL if you are in 2 dim
 
 # For the MNIST data set
-if args.model == 'mnist':
+if parameters['model'] == 'mnist':
     model_size = MNIST_SIZE
     image_size = 28
     dataset = datasets.MNIST('./DATA/MNIST_data', train=True, download=True,
@@ -87,33 +80,33 @@ if args.model == 'mnist':
                                  transforms.ToTensor()
                              ]))
     train_loader = torch.utils.data.DataLoader(
-        dataset, batch_size=args.batches, shuffle=True, drop_last=True)
+        dataset, batch_size=parameters['batch_size'], shuffle=True, drop_last=True)
 
     test_loader = torch.utils.data.DataLoader(
         datasets.MNIST('./DATA/MNIST_data', train=False, transform=transforms.Compose([
             transforms.ToTensor()
         ])),
-        batch_size=args.batches)
+        batch_size=parameters['batch_size'])
 #############################
-elif args.model == 'ising':
+elif parameters['model'] == 'ising':
     # For the Ising Model data set
-    model_size = args.ising_size * args.ising_size
-    image_size = args.ising_size
-    train_loader = torch.utils.data.DataLoader(rbm_pytorch.CSV_Ising_dataset(args.training_data, size=model_size), shuffle=True,
-                                               batch_size=args.batches, drop_last=True)
+    model_size = parameters['ising_size']  # note that you have to give the full dimension LxL if you are in 2 dim
+    image_size = parameters['ising_size']
+    train_loader = torch.utils.data.DataLoader(rbm_pytorch.CSV_Ising_dataset(parameters['training_data'], size=model_size), shuffle=True,
+                                               batch_size=parameters['batch_size'], drop_last=True)
 
 # Read the model, example
-rbm = rbm_pytorch.RBM(k=args.kCD, n_vis=model_size, n_hid=hidden_layers)
-
+rbm = rbm_pytorch.RBM(k=parameters['kCD'], n_vis=model_size, n_hid=hidden_layers)
+"""
 # load the model, if the file is present
-if args.ckpoint is not None:
-    print("Loading saved network state from file", args.ckpoint)
-    rbm.load_state_dict(torch.load(args.ckpoint))
-
+if parameters['ckpoint'] is not None:
+    print("Loading saved network state from file", parameters['ckpoint'])
+    rbm.load_state_dict(torch.load(parameters['ckpoint']))
+"""
 ##############################
 # Training parameters
 
-learning_rate = args.lrate
+learning_rate = parameters['lrate']
 mom = 0.0   # momentum
 damp = 0.0  # dampening factor
 wd = 0.0    # weight decay 
@@ -122,10 +115,10 @@ train_op = optim.SGD(rbm.parameters(), lr=learning_rate,
                      momentum=mom, dampening=damp, weight_decay=wd)
 
 # progress bar
-pbar = tqdm(range(args.start_epoch, args.epochs))
+pbar = tqdm(range(parameters['start_epoch'], parameters['epochs']))
 
-loss_file = open(args.text_output_dir + "Loss_timeline.data_" + str(args.model) + "_lr" + str(learning_rate) + "_wd" + str(wd) + "_mom" + str(
-    mom) + "_epochs" + str(args.epochs), "w", buffering=1)
+loss_file = open(parameters['text_output_dir'] + "Loss_timeline.data_" + str(parameters['model']) + "_lr" + str(learning_rate) + "_wd" + str(wd) + "_mom" + str(
+    mom) + "_epochs" + str(parameters['epochs']), "w", buffering=1)
 
 #Changed loss file output, changing headings here too
 
@@ -177,8 +170,8 @@ for epoch in pbar:
     pbar.set_description("Epoch %3d - Loss %8.5f - RE %5.3g  " % (epoch, loss_mean, re_mean))
 
     if epoch % 10 == 0:
-        torch.save(rbm.state_dict(), args.text_output_dir + "trained_rbm.pytorch." + str(epoch))
+        torch.save(rbm.state_dict(), parameters['text_output_dir'] + "trained_rbm.pytorch." + str(epoch))
 
 # Save the final model
-torch.save(rbm.state_dict(), args.text_output_dir + "trained_rbm.pytorch.last")
+torch.save(rbm.state_dict(), parameters['text_output_dir'] + "trained_rbm.pytorch.last")
 loss_file.close()
