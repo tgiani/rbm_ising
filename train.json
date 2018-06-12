@@ -8,8 +8,8 @@
   "ising_size" : 64,
   "kCD": 1,
   "image_output_dir": "./",
-  "text_output_dir": "/scratch/RBM/RBM_ft_8x8/1.8/test_0.01_2-dim/",
-  "training_data": "/scratch/RBM/Ising_Trained_Machines/L8/training/state_8_03_0.txt",
+  "text_output_dir": "/scratch/RBM/RBM_paper/L8/2.3/0.01_k1/",
+  "training_data": "/scratch/RBM/RBM_paper/magneto_ensembles/L8/state_new5.txt",
   "lrate": 0.01
   
  }

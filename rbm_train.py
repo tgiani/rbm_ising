@@ -97,12 +97,12 @@ elif parameters['model'] == 'ising':
 
 # Read the model, example
 rbm = rbm_pytorch.RBM(k=parameters['kCD'], n_vis=model_size, n_hid=hidden_layers)
-"""
+
 # load the model, if the file is present
 if parameters['ckpoint'] is not None:
     print("Loading saved network state from file", parameters['ckpoint'])
     rbm.load_state_dict(torch.load(parameters['ckpoint']))
-"""
+
 ##############################
 # Training parameters
 

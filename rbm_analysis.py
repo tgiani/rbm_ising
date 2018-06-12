@@ -329,7 +329,7 @@ if parameters['do_convergence_analysis']:
   pbar = tqdm(range(parameters['start_epoch'], parameters['final_epoch']))
   n = 0
 
-  npoints  = (parameters['final_epoch']-parameters['start_epoch'])/10
+  npoints  = (parameters['final_epoch']-parameters['start_epoch'])/50 + 1
 
   epochs   = np.zeros(npoints)
   mag      = np.zeros(npoints)
@@ -341,11 +341,13 @@ if parameters['do_convergence_analysis']:
   cv       = np.zeros(npoints)
   cv_err   = np.zeros(npoints)
   log_likelihood_mean = np.zeros(npoints)
+  ll_error_up = np.zeros(npoints)
+  ll_error_down = np.zeros(npoints)
 
 
   for epoch in pbar:
 
-    if epoch % 20 == 0:
+    if epoch % 50 == 0:
 
         print("Loading saved network state from file", parameters['checkpoint'], epoch)
         rbm.load_state_dict(torch.load(parameters['checkpoint']+str(epoch)))
@@ -364,10 +366,12 @@ if parameters['do_convergence_analysis']:
         free_energy_mean = np.mean(free_energy_)   # take the average avross the batches, so that we have the mean across the whole training set
         logz , logz_up, logz_down = rbm.annealed_importance_sampling(1, 10000, 100)
         log_likelihood_mean[n] = free_energy_mean - logz
+        ll_error_up[n] = (-logz_down + logz)
+        ll_error_down[n] = (-logz + logz_up)
         
-        analysis_file.write(str(epoch) + "\t" +  str(mag[n]) + "\t" + str(mag_err[n])+ "\t" +  str(en[n]) + "\t" + str(en_err[n])+ "\t" +  str(susc[n]) + "\t" + str(susc_err[n])+ "\t" +  str(cv[n]) + "\t" + str(cv_err[n]) + "\t" + str(log_likelihood_mean[n]) + "\n")
+        analysis_file.write(str(epoch) + "\t" +  str(mag[n]) + "\t" + str(mag_err[n])+ "\t" +  str(en[n]) + "\t" + str(en_err[n])+ "\t" +  str(susc[n]) + "\t" + str(susc_err[n])+ "\t" +  str(cv[n]) + "\t" + str(cv_err[n]) + "\t" + str(log_likelihood_mean[n]) + "\t" + str(ll_error_up[n]) + "\t" + str(ll_error_down[n])  + "\n")
         
-        print(str(epoch) + "\t" +  str(mag[n]) + "\t" + str(mag_err[n])+ "\t" +  str(en[n]) + "\t" + str(en_err[n])+ "\t" +  str(susc[n]) + "\t" + str(susc_err[n])+ "\t" +  str(cv[n]) + "\t" + str(cv_err[n]) + "\t" + str(log_likelihood_mean[n]) + "\n")
+        print(str(epoch) + "\t" +  str(mag[n]) + "\t" + str(mag_err[n])+ "\t" +  str(en[n]) + "\t" + str(en_err[n])+ "\t" +  str(susc[n]) + "\t" + str(susc_err[n])+ "\t" +  str(cv[n]) + "\t" + str(cv_err[n]) + "\t" + str(log_likelihood_mean[n]) + "\t" + str(ll_error_up[n]) + "\t" + str(ll_error_down[n]) + "\n")
         n+=1
 
   print("Plotting....")
