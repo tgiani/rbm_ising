@@ -296,7 +296,7 @@ class RBM(nn.Module):
         return (hidden_term + vbias_term)*beta  # mean along the batches
 
     def free_energy_batch_mean(self, v, beta = 1.0):
-        return self.free_energy(v).mean()
+        return self.free_energy(v,beta).mean()
 
     def backward(self, target, vk):
         # p(H_i | v) where v is the input data
