@@ -3,23 +3,8 @@
  1-dimensional ising probability distribution using metropolis
 
 
-/*************** Overview of the algorithm **********************
- sigmain = [..]
- E(sigmain)
- sigmap = []  configuration where i switch one of the spin
+**************************************************************/
  
- E(sigmap) 
- p = exp-(E(sigmap)-E(sigma))
- r random between o and 1
- if r < p        sigmap is one of my states
- else            sigmain is one of my state (even if i already have it)
-  
-in this way i obtain how many states i want distributed according to the probability distribution exp(-E)/Z
-
-
-***************************************************************/
-
-
 #include"iostream"
 #include"cmath"
 #include"fstream"
